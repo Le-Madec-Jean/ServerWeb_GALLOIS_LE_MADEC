@@ -3,6 +3,7 @@
 
 # intelliJ IDEA
 *.iml
+*.xml
 *idea/
 
 # Log file
