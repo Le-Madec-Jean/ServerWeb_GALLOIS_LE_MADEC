@@ -1,0 +1,11 @@
+@startfiles
+/.github
+/serveurWeb/bin/class/HttpServer.class
+/serveurWeb/conf.d/
+/serveurWeb/src/HttpServer.java
+/serveurWeb/run/
+/serveurWeb/scripts
+
+/README.md
+
+@endfiles
