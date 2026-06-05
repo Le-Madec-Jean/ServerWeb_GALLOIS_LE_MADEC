@@ -5,7 +5,6 @@
 /serveurWeb/conf.d/serverWeb.conf
 /serveurWeb/run/
 /serveurWeb/scripts/
-/serveurWeb/src/HttpServer.java
 /var/log/amyweb/
 /var/log/www/
 /var/log/www2/
