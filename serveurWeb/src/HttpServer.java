@@ -23,13 +23,14 @@ import org.xml.sax.SAXException;
 
 public class HttpServer {
 
-    public static void chargerPage(String path, int port, String pathDefault) throws IOException {
+    public static void chargerPage(String pathRoot, int port, String pathDefault) throws IOException {
 
         // gestion message serveur
         String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n"; 
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("Serveur démarré sur le port " + port);
 
+        
         // Boucle infinie pour accepter les connexions entrantes
         while (true) {
             // Accepter une connexion entrante
@@ -57,16 +58,21 @@ public class HttpServer {
                           // connexion
             }
 
+            String cheminFichierFinal;
+
             // Afficher la ligne de tête de la requête HTTP
             System.out.println(head);
             // Extraire le chemin du fichier demandé à partir de la ligne de tête de la
             // requête HTTP
             String[] tabString = head.split(" ");
-            path += tabString[1];
+            String path = tabString[1];
+
 
             // Si le chemin est "/", servir le fichier "index.html"
-            if (path.charAt(path.length() - 1) == '/' && !(pathDefault.equals(""))) {
-                path += "/" + pathDefault;
+            if (path.equals("/") && !(pathDefault.equals(""))) {
+                cheminFichierFinal = pathRoot + "/" + pathDefault;
+            } else {
+                cheminFichierFinal = pathRoot + path;
             }
 
             // Lire les lignes d'en-tête de la requête HTTP jusqu'à ce qu'une ligne vide
@@ -78,7 +84,7 @@ public class HttpServer {
             }
 
             // Vérifier si le fichier demandé existe dans le système de fichiers
-            File file = new File(path);
+            File file = new File(cheminFichierFinal);
             if (file.exists()) {
 
                 try { // Si le fichier existe :
@@ -138,7 +144,6 @@ public class HttpServer {
         try {
             document = builder.parse(new File("../conf.d/serverWeb.conf"));
         } catch (SAXException | IOException e) {
-
             e.printStackTrace();
         }
 
@@ -162,7 +167,8 @@ public class HttpServer {
 
         Thread thread = new Thread(() -> {
             try {
-                int port = Integer.parseInt(ports.get(0));
+                String clef = ports.get(0);
+                int port = Integer.parseInt(clef);
                 chargerPage("", port,"");
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -178,7 +184,6 @@ public class HttpServer {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-
         });
         thread2.start();
     }
