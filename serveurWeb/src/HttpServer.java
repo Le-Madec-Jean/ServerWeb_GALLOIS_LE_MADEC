@@ -26,11 +26,12 @@ public class HttpServer {
     public static void chargerPage(String pathRoot, int port, String pathDefault) throws IOException {
 
         // gestion message serveur
-        String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n"; 
+        String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n";
+
+
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("Serveur démarré sur le port " + port);
 
-        
         // Boucle infinie pour accepter les connexions entrantes
         while (true) {
             // Accepter une connexion entrante
@@ -67,7 +68,6 @@ public class HttpServer {
             String[] tabString = head.split(" ");
             String path = tabString[1];
 
-
             // Si le chemin est "/", servir le fichier "index.html"
             if (path.equals("/") && !(pathDefault.equals(""))) {
                 cheminFichierFinal = pathRoot + "/" + pathDefault;
@@ -86,10 +86,8 @@ public class HttpServer {
             // Vérifier si le fichier demandé existe dans le système de fichiers
             File file = new File(cheminFichierFinal);
             if (file.exists()) {
-
                 try { // Si le fichier existe :
-                    FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu du
-                                                                    // fichier demandé
+                    FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu du fichier demandé
 
                     sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n"); // Envoyer la longueur
                                                                                                  // du contenu du
@@ -163,28 +161,25 @@ public class HttpServer {
         // fin lecture du fichier config //
 
         // gestion des variables du serveur
+    
+        // boucle pour créer un thread pour chaque site configuré dans le fichier de configuration
         ArrayList<String> ports = new ArrayList<String>(gestionSite.keySet());
 
-        Thread thread = new Thread(() -> {
-            try {
-                String clef = ports.get(0);
-                int port = Integer.parseInt(clef);
-                chargerPage("", port,"");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-        });
-        thread.start();
-
-        Thread thread2 = new Thread(() -> {
-            try {
-                int port = Integer.parseInt(ports.get(1));
-                chargerPage("", port,"");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        thread2.start();
-    }
+        // On parcourt chaque élément de la liste 'ports'
+        for (String clefPort : ports) {
+            // On crée un nouveau Thread à chaque tour de boucle
+            Thread thread = new Thread(() -> {
+                try {
+                    int port = Integer.parseInt(clefPort);
+                    
+                    String racineDuSite = gestionSite.get(clefPort);
+                    chargerPage(racineDuSite, port, "index.html"); 
+                    
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            thread.start();
+        };
+    } 
 }
