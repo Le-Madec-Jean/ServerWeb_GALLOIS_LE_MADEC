@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ public class HttpServer {
         // gestion message serveur
         String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n";
 
-
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("Serveur démarré sur le port " + port);
 
@@ -42,29 +40,22 @@ public class HttpServer {
             // Créer des flux pour lire la requête du client et envoyer la réponse
             BufferedReader clientInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse
-                                                                  // au client
+            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse au client
             PrintWriter sortie = new PrintWriter(outputStream, true); // sert à envoyer des données textuelles au client
-                                                                      // de manière efficace en utilisant un tampon et
-                                                                      // en assurant que les données sont envoyées
-                                                                      // immédiatement grâce au second argument "true"
 
             // Lire la première ligne de la requête HTTP (la ligne de tête)
             String head = clientInput.readLine();
             // Si la ligne de tête est nulle, fermer la connexion et continuer à attendre
-            // les prochaines connexions
             if (head == null) {
                 socket.close();
-                continue; // Passer à la prochaine itération de la boucle pour attendre une nouvelle
-                          // connexion
+                continue; 
             }
 
             String cheminFichierFinal;
 
             // Afficher la ligne de tête de la requête HTTP
             System.out.println(head);
-            // Extraire le chemin du fichier demandé à partir de la ligne de tête de la
-            // requête HTTP
+            // Extraire le chemin du fichier demandé à partir de la ligne de tête de la requête HTTP
             String[] tabString = head.split(" ");
             String path = tabString[1];
 
@@ -75,11 +66,9 @@ public class HttpServer {
                 cheminFichierFinal = pathRoot + path;
             }
 
-            // Lire les lignes d'en-tête de la requête HTTP jusqu'à ce qu'une ligne vide
-            // soit rencontrée, indiquant la fin des en-têtes
+            // Lire les lignes d'en-tête de la requête HTTP
             String headerLine;
             while ((headerLine = clientInput.readLine()) != null && !headerLine.isEmpty()) {
-                // Afficher chaque ligne d'en-tête de la requête HTTP
                 System.out.println(headerLine);
             }
 
@@ -87,40 +76,28 @@ public class HttpServer {
             File file = new File(cheminFichierFinal);
             if (file.exists()) {
                 try { // Si le fichier existe :
-                    FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu du fichier demandé
+                    FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu
 
-                    sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n"); // Envoyer la longueur
-                                                                                                 // du contenu du
-                                                                                                 // fichier au client
-                                                                                                 // pour qu'il puisse
-                                                                                                 // gérer correctement
-                                                                                                 // la réception des
-                                                                                                 // données
-                    byte[] buffer = new byte[1024]; // tampon de 1024 octets pour lire le contenu du fichier en morceaux
+                    sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n"); 
+                                                                                                 
+                    byte[] buffer = new byte[1024]; 
                     int bytesRead;
-                    // Lire le contenu du fichier dans le tampon jusqu'à la fin du fichier (indiquée
-                    // par -1)
+                    // Lire le contenu du fichier dans le tampon
                     while ((bytesRead = fi.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead); // écrire les données lues du fichier dans le flux de
-                                                                  // sortie pour les envoyer au client
+                        outputStream.write(buffer, 0, bytesRead); 
                     }
 
-                    // Vider le tampon du flux de sortie pour s'assurer que toutes les données sont
-                    // envoyées au client
+                    // Vider le tampon du flux de sortie 
                     outputStream.flush();
                     fi.close();
 
-                } catch (FileNotFoundException e) { // Si le fichier n'est pas trouvé (ce qui est peu probable car nous
-                                                    // avons déjà vérifié son existence), envoyer un message d'erreur
-                                                    // 404 au client
-                    sortie.println(Erreur404 + path); // Envoyer un message d'erreur indiquant que le fichier demandé
-                                                      // n'a pas été trouvé
+                } catch (FileNotFoundException e) { 
+                    sortie.println(Erreur404 + path); 
                 }
             } else {
-                sortie.println(Erreur404); // Envoyer une réponse HTTP 404 Not Found au client pour indiquer que le
-                                           // fichier demandé n'a pas été trouvé
+                sortie.println(Erreur404); 
             }
-            socket.close(); // Fermer la connexion avec le client après avoir traité la requête
+            socket.close(); 
         }
 
     }
@@ -145,23 +122,20 @@ public class HttpServer {
             e.printStackTrace();
         }
 
-        // 3. Récupération de tous les éléments <utilisateur>
+        // 3. Récupération de tous les éléments <site>
         NodeList siteNodeList = document.getElementsByTagName("site");
 
-        // on créer les liste pour stocker les différente éléments du fichier config
+        // on crée la liste pour stocker les différents éléments du fichier config
         TreeMap<String, String> gestionSite = new TreeMap<String, String>();
 
         for (int i = 0; i < siteNodeList.getLength(); i++) {
             Element site = (Element) siteNodeList.item(i); // on prend un site
             gestionSite.put(site.getElementsByTagName("port").item(0).getTextContent(),
                     site.getElementsByTagName("DocumentRoot").item(0).getTextContent());
-
         }
-
         // fin lecture du fichier config //
 
         // gestion des variables du serveur
-    
         // On crée une liste "ports" à partir des clés de la map "gestionSite"
         ArrayList<String> ports = new ArrayList<String>(gestionSite.keySet());
         
@@ -180,6 +154,6 @@ public class HttpServer {
                 }
             });
             thread.start();
-        };
+        }
     } 
 }
