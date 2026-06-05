@@ -13,10 +13,11 @@ import java.net.Socket;
 public class HttpServer {
     public static void main(String[] args) throws IOException {
 
+        String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n"; // Message d'erreur 404 à envoyer au client lorsque le fichier demandé n'est pas trouvé
+
         // Afficher le nom de la machine et son adresse IP
         InetAddress ip = InetAddress.getLocalHost();
-        System.out.println("Nom de la machine : " + ip.getHostName());
-        System.out.println("Adresse IP : " + ip.getHostAddress());
+        System.out.println("Nom de la machine : " + ip.getHostName() + "\nAdresse IP : " + ip.getHostAddress());
 
         // Définir le port d'écoute (par défaut 8080)
         int port = (args.length > 0) ? Integer.parseInt(args[0]) : 8080;
@@ -74,8 +75,7 @@ public class HttpServer {
                 try { // Si le fichier existe :
                     FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu du fichier demandé
 
-                    sortie.println("HTTP/1.1 200 OK");
-                    sortie.println("Content-Length: " + file.length()+"\n"); // Envoyer la longueur du contenu du fichier au client pour qu'il puisse gérer correctement la réception des données
+                    sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length()+"\n"); // Envoyer la longueur du contenu du fichier au client pour qu'il puisse gérer correctement la réception des données
                     byte[] buffer = new byte[1024]; // tampon de 1024 octets pour lire le contenu du fichier en morceaux
                     int bytesRead;
                     // Lire le contenu du fichier dans le tampon jusqu'à la fin du fichier (indiquée par -1)
@@ -87,12 +87,11 @@ public class HttpServer {
                     outputStream.flush();
                     fi.close();
 
-                } catch (FileNotFoundException e) { // Si le fichier n'est pas trouvé
-                    sortie.println("Content-Type: text/plain; charset=UTF-8\n");
-                    sortie.println("Erreur 404 " + path); // Envoyer un message d'erreur indiquant que le fichier demandé n'a pas été trouvé
+                } catch (FileNotFoundException e) { // Si le fichier n'est pas trouvé (ce qui est peu probable car nous avons déjà vérifié son existence), envoyer un message d'erreur 404 au client
+                    sortie.println(Erreur404 + path); // Envoyer un message d'erreur indiquant que le fichier demandé n'a pas été trouvé
                 }
             } else {
-                sortie.println("HTTP/1.1 404 Not Found\n Fichier non trouvé"); // Envoyer une réponse HTTP 404 Not Found au client pour indiquer que le fichier demandé n'a pas été trouvé
+                sortie.println(Erreur404); // Envoyer une réponse HTTP 404 Not Found au client pour indiquer que le fichier demandé n'a pas été trouvé
             }
             socket.close(); // Fermer la connexion avec le client après avoir traité la requête
         }
