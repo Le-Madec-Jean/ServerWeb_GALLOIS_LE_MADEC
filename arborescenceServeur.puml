@@ -4,7 +4,7 @@
 /serveurWeb/bin/HttpServer.java
 /serveurWeb/conf.d/serverWeb.conf
 /serveurWeb/run/
-/serveurWeb/cripts/
+/serveurWeb/scripts/
 /serveurWeb/src/HttpServer.java
 /var/log/amyweb/
 /var/log/www/
@@ -12,6 +12,6 @@
 /.gitignore
 /arborescenceServeur.png
 /arborescenceServeur.puml
-/binome.tkt
+/binome.txt
 /README.md
 @endfiles
