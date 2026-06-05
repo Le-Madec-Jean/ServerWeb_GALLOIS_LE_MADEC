@@ -1,13 +1,17 @@
-@startfiles
+@startfiles arborescenceServeur
 /.git
-/serveurWeb/bin/class/HttpServer.class
+/serveurWeb/bin/HttpServer.class
+/serveurWeb/bin/HttpServer.java
 /serveurWeb/conf.d/serverWeb.conf
 /serveurWeb/run/
-/serveurWeb/scripts/
+/serveurWeb/cripts/
 /serveurWeb/src/HttpServer.java
-/arborescenceServeur.puml
+/var/log/amyweb/
+/var/log/www/
+/var/log/www2/
 /.gitignore
 /arborescenceServeur.png
 /arborescenceServeur.puml
+/binome.tkt
 /README.md
 @endfiles
