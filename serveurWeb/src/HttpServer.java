@@ -76,13 +76,10 @@ public class HttpServer {
                 System.out.println("Connexion acceptée de " + socket.getInetAddress());
 
 
-                
-
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
-        thread.start();
+        }); thread.start();
 
         Thread thread2 = new Thread(() -> {
             try {
@@ -100,8 +97,7 @@ public class HttpServer {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
-        thread.start();
+        }); thread2.start();
     }
 }
 
