@@ -6,4 +6,4 @@
 
 ## arborescenceServeur du projet :
 
-![img.png](src/arborescenceServeur.png)
+![img.png](arborescenceServeur.png)
