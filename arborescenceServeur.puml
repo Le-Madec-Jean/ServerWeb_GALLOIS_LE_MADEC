@@ -1,11 +1,13 @@
 @startfiles
 /.git
 /serveurWeb/bin/class/HttpServer.class
-/serveurWeb/conf.d/
+/serveurWeb/conf.d/serverWeb.conf
 /serveurWeb/run/
 /serveurWeb/scripts/
 /serveurWeb/src/HttpServer.java
 /arborescenceServeur.puml
 /.gitignore
+/arborescenceServeur.png
+/arborescenceServeur.puml
 /README.md
 @endfiles
