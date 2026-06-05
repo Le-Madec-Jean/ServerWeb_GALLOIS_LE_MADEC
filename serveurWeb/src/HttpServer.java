@@ -162,10 +162,10 @@ public class HttpServer {
 
         // gestion des variables du serveur
     
-        // boucle pour créer un thread pour chaque site configuré dans le fichier de configuration
+        // On crée une liste "ports" à partir des clés de la map "gestionSite"
         ArrayList<String> ports = new ArrayList<String>(gestionSite.keySet());
-
-        // On parcourt chaque élément de la liste 'ports'
+        
+        // On parcourt chaque élément de la liste "ports"
         for (String clefPort : ports) {
             // On crée un nouveau Thread à chaque tour de boucle
             Thread thread = new Thread(() -> {
