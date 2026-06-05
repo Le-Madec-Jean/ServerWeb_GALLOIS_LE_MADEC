@@ -12,6 +12,8 @@ import java.net.Socket;
 
 public class HttpServer {
     public static void main(String[] args) throws IOException {
+        String documentRoot = "/var/www"; // temporaire pour tester
+        String fichierParDefaut = "index.html"; // Fichier par défaut à servir lorsque le client demande la racine du serveur ("/")
 
         String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n"; // Message d'erreur 404 à envoyer au client lorsque le fichier demandé n'est pas trouvé
 
@@ -56,7 +58,7 @@ public class HttpServer {
 
             // Si le chemin est "/", servir le fichier "index.html"
             if (path.equals("/")) {
-                path = "index.html";
+                path = fichierParDefaut;
             } else if (path.startsWith("/")) { // Si le chemin commence par "/", supprimer le "/" initial pour obtenir le nom du fichier demandé
                 path = path.substring(1);
             }
@@ -69,7 +71,7 @@ public class HttpServer {
             }
 
             // Vérifier si le fichier demandé existe dans le système de fichiers
-            File file = new File(path);
+            File file = new File(documentRoot, path);
             if (file.exists()) {
                 
                 try { // Si le fichier existe :
