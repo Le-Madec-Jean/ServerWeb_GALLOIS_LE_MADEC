@@ -40,7 +40,8 @@ public class HttpServer {
             // Créer des flux pour lire la requête du client et envoyer la réponse
             BufferedReader clientInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse au client
+            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse
+                                                                  // au client
             PrintWriter sortie = new PrintWriter(outputStream, true); // sert à envoyer des données textuelles au client
 
             // Lire la première ligne de la requête HTTP (la ligne de tête)
@@ -48,22 +49,25 @@ public class HttpServer {
             // Si la ligne de tête est nulle, fermer la connexion et continuer à attendre
             if (head == null) {
                 socket.close();
-                continue; 
+                continue;
             }
-
-            String cheminFichierFinal;
 
             // Afficher la ligne de tête de la requête HTTP
             System.out.println(head);
-            // Extraire le chemin du fichier demandé à partir de la ligne de tête de la requête HTTP
+            // Extraire le chemin du fichier demandé à partir de la ligne de tête de la
+            // requête HTTP
             String[] tabString = head.split(" ");
             String path = tabString[1];
 
-            // Si le chemin est "/", servir le fichier "index.html"
-            if (path.equals("/") && !(pathDefault.equals(""))) {
-                cheminFichierFinal = pathRoot + "/" + pathDefault;
-            } else {
-                cheminFichierFinal = pathRoot + path;
+            String cheminFichierFinal = pathRoot + path;
+            File file = new File(cheminFichierFinal);
+
+            // Si c'est un dossier, on essaie d'abord d'y trouver le fichier par défaut
+            if (file.exists() && file.isDirectory() && !pathDefault.isEmpty()) {
+                File defaultFile = new File(file, pathDefault);
+                if (defaultFile.exists()) {
+                    file = defaultFile;
+                }
             }
 
             // Lire les lignes d'en-tête de la requête HTTP
@@ -73,31 +77,68 @@ public class HttpServer {
             }
 
             // Vérifier si le fichier demandé existe dans le système de fichiers
-            File file = new File(cheminFichierFinal);
             if (file.exists()) {
-                try { // Si le fichier existe :
-                    FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu
+                if (file.isDirectory()) {
+                    // Afficher la liste des fichiers et dossiers
+                    StringBuilder html = new StringBuilder();
+                    html.append("<html><head><title>Index of ").append(path)
+                            .append("</title><meta charset=\"UTF-8\"></head><body>\n");
+                    html.append("<h1>Index of ").append(path).append("</h1><hr><pre>\n");
 
-                    sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n"); 
-                                                                                                 
-                    byte[] buffer = new byte[1024]; 
-                    int bytesRead;
-                    // Lire le contenu du fichier dans le tampon
-                    while ((bytesRead = fi.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead); 
+                    // Lien parent si on n'est pas à la racine
+                    if (!path.equals("/")) {
+                        String parentPath = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+                        int lastSlash = parentPath.lastIndexOf("/");
+                        if (lastSlash >= 0) {
+                            parentPath = parentPath.substring(0, lastSlash + 1);
+                            html.append("<a href=\"").append(parentPath).append("\">../</a>\n");
+                        }
                     }
 
-                    // Vider le tampon du flux de sortie 
-                    outputStream.flush();
-                    fi.close();
+                    File[] list = file.listFiles();
+                    if (list != null) {
+                        for (File f : list) {
+                            String name = f.getName();
+                            if (f.isDirectory()) {
+                                name += "/";
+                            }
+                            String hrefPath = path.endsWith("/") ? path + name : path + "/" + name;
+                            html.append("<a href=\"").append(hrefPath).append("\">").append(name).append("</a>\n");
+                        }
+                    }
+                    html.append("</pre><hr></body></html>\n");
 
-                } catch (FileNotFoundException e) { 
-                    sortie.println(Erreur404 + path); 
+                    String reponse = html.toString();
+                    byte[] reponseBytes = reponse.getBytes("UTF-8");
+                    sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: "
+                            + reponseBytes.length + "\n");
+                    outputStream.write(reponseBytes);
+                    outputStream.flush();
+                } else {
+                    try { // Si le fichier existe :
+                        FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu
+
+                        sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n");
+
+                        byte[] buffer = new byte[1024];
+                        int bytesRead;
+                        // Lire le contenu du fichier dans le tampon
+                        while ((bytesRead = fi.read(buffer)) != -1) {
+                            outputStream.write(buffer, 0, bytesRead);
+                        }
+
+                        // Vider le tampon du flux de sortie
+                        outputStream.flush();
+                        fi.close();
+
+                    } catch (FileNotFoundException e) {
+                        sortie.println(Erreur404 + path);
+                    }
                 }
             } else {
-                sortie.println(Erreur404); 
+                sortie.println(Erreur404);
             }
-            socket.close(); 
+            socket.close();
         }
 
     }
@@ -126,34 +167,40 @@ public class HttpServer {
         NodeList siteNodeList = document.getElementsByTagName("site");
 
         // on crée la liste pour stocker les différents éléments du fichier config
-        TreeMap<String, String> gestionSite = new TreeMap<String, String>();
+        TreeMap<String, String[]> gestionSite = new TreeMap<String, String[]>();
 
         for (int i = 0; i < siteNodeList.getLength(); i++) {
             Element site = (Element) siteNodeList.item(i); // on prend un site
-            gestionSite.put(site.getElementsByTagName("port").item(0).getTextContent(),
-                    site.getElementsByTagName("DocumentRoot").item(0).getTextContent());
+            String port = site.getElementsByTagName("port").item(0).getTextContent();
+            String docRoot = site.getElementsByTagName("DocumentRoot").item(0).getTextContent();
+            String defaultIndex = "";
+            if (site.getElementsByTagName("DefaultIndex").getLength() > 0) {
+                defaultIndex = site.getElementsByTagName("DefaultIndex").item(0).getTextContent();
+            }
+            gestionSite.put(port, new String[] { docRoot, defaultIndex });
         }
         // fin lecture du fichier config //
 
         // gestion des variables du serveur
         // On crée une liste "ports" à partir des clés de la map "gestionSite"
         ArrayList<String> ports = new ArrayList<String>(gestionSite.keySet());
-        
+
         // On parcourt chaque élément de la liste "ports"
         for (String clefPort : ports) {
             // On crée un nouveau Thread à chaque tour de boucle
             Thread thread = new Thread(() -> {
                 try {
                     int port = Integer.parseInt(clefPort);
-                    
-                    String racineDuSite = gestionSite.get(clefPort);
-                    chargerPage(racineDuSite, port, "index.html"); 
-                    
+
+                    String racineDuSite = gestionSite.get(clefPort)[0];
+                    String defaultIndex = gestionSite.get(clefPort)[1];
+                    chargerPage(racineDuSite, port, defaultIndex);
+
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             });
             thread.start();
         }
-    } 
+    }
 }
