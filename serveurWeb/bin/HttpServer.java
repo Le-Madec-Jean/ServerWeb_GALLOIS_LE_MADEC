@@ -54,8 +54,7 @@ public class HttpServer {
             // Créer des flux pour lire la requête du client et envoyer la réponse
             BufferedReader clientInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse
-                                                                  // au client
+            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse au client
             PrintWriter sortie = new PrintWriter(outputStream, true); // sert à envoyer des données textuelles au client
 
             // Lire la première ligne de la rsequête HTTP (la ligne de tête)
@@ -131,13 +130,18 @@ public class HttpServer {
                 if (file.isDirectory()) {
                     // Afficher la liste des fichiers et dossiers
                     StringBuilder html = new StringBuilder();
-                    html.append("<html><head><title>Index of ").append(path)
-                            .append("</title><meta charset=\"UTF-8\"></head><body>\n");
+                    html.append("<html><head><title>Index of ").append(path).append("</title><meta charset=\"UTF-8\"></head><body>\n");
                     html.append("<h1>Index of ").append(path).append("</h1><hr><pre>\n");
 
                     // Lien parent si on n'est pas à la racine
                     if (!path.equals("/")) {
-                        String parentPath = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+                        String parentPath;
+                        if (path.endsWith("/")) {
+                            parentPath = path.substring(0, path.length() - 1);
+                        } else {
+                            parentPath = path;
+                        }
+
                         int lastSlash = parentPath.lastIndexOf("/");
                         if (lastSlash >= 0) {
                             parentPath = parentPath.substring(0, lastSlash + 1);
@@ -152,7 +156,12 @@ public class HttpServer {
                             if (f.isDirectory()) {
                                 name += "/";
                             }
-                            String hrefPath = path.endsWith("/") ? path + name : path + "/" + name;
+                            String hrefPath;
+                            if (path.endsWith("/")) {
+                                hrefPath = path + name;
+                            } else {
+                                hrefPath = path + "/" + name;
+                            }
                             html.append("<a href=\"").append(hrefPath).append("\">").append(name).append("</a>\n");
                         }
                     }
@@ -160,8 +169,7 @@ public class HttpServer {
 
                     String reponse = html.toString();
                     byte[] reponseBytes = reponse.getBytes("UTF-8");
-                    sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: "
-                            + reponseBytes.length + "\n");
+                    sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: " + reponseBytes.length + "\n");
                     outputStream.write(reponseBytes);
                     outputStream.flush();
                 } else {
@@ -231,8 +239,7 @@ public class HttpServer {
             config.add(site.getElementsByTagName("Acceslog").item(0));
             config.add(site.getElementsByTagName("Errorlog").item(0));
 
-            gestionSite.put(site.getElementsByTagName("port").item(0).getTextContent(),
-                    config);
+            gestionSite.put(site.getElementsByTagName("port").item(0).getTextContent(),config);
 
         }
         // fin lecture du fichier config //
