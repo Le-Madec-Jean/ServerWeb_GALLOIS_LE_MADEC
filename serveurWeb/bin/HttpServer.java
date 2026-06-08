@@ -8,6 +8,10 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
@@ -23,11 +27,19 @@ import org.xml.sax.SAXException;
 
 public class HttpServer {
 
+    private static String formaterDate(long timestamp) {
+        return DateTimeFormatter.RFC_1123_DATE_TIME
+                .withZone(ZoneId.of("GMT"))
+                .format(Instant.ofEpochMilli(timestamp));
+    }
+
     public static synchronized void logToFile(String logFilePath, String message) {
-        if (logFilePath == null || logFilePath.isEmpty()) return;
+        if (logFilePath == null || logFilePath.isEmpty())
+            return;
         try {
             File file = new File(logFilePath);
-            if (file.getParentFile() != null) file.getParentFile().mkdirs();
+            if (file.getParentFile() != null)
+                file.getParentFile().mkdirs();
             java.io.PrintWriter out = new java.io.PrintWriter(new java.io.FileWriter(file, true));
             out.println(new java.util.Date().toString() + " - " + message);
             out.close();
@@ -36,7 +48,8 @@ public class HttpServer {
         }
     }
 
-    public static void chargerPage(String pathRoot, int port, String pathDefault, String accessLogPath, String errorLogPath) throws IOException {
+    public static void chargerPage(String pathRoot, int port, String pathDefault, String accessLogPath,
+            String errorLogPath) throws IOException {
 
         // gestion message serveur
         String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n";
@@ -54,7 +67,8 @@ public class HttpServer {
             // Créer des flux pour lire la requête du client et envoyer la réponse
             BufferedReader clientInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse au client
+            OutputStream outputStream = socket.getOutputStream(); // obtenir le flux de sortie pour envoyer la réponse
+                                                                  // au client
             PrintWriter sortie = new PrintWriter(outputStream, true); // sert à envoyer des données textuelles au client
 
             // Lire la première ligne de la rsequête HTTP (la ligne de tête)
@@ -72,32 +86,33 @@ public class HttpServer {
             String[] tabString = head.split(" ");
             String path = tabString[1];
 
-
-
             // log
             logToFile(accessLogPath, "IP: " + socket.getInetAddress() + " | Requete: " + head);
 
             // etat de la machine
             if (path.equals("/status")) {
-                long freeMem = Runtime.getRuntime().freeMemory(); 
+                long freeMem = Runtime.getRuntime().freeMemory();
                 long freeDisk = new File("/").getFreeSpace();
                 int processCount = 0;
                 try {
                     Process p = Runtime.getRuntime().exec("ps -e");
                     BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    while (br.readLine() != null) processCount++;
+                    while (br.readLine() != null)
+                        processCount++;
                     processCount--; // Enlever l'en-tête de `ps`
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
 
                 String html = "<html><head><meta charset=\"UTF-8\"><title>Etat de la machine</title></head><body>"
-                            + "<h1>Etat de la machine</h1><ul>"
-                            + "<li>Mémoire JVM disponible : " + (freeMem / 1024 / 1024) + " Mo</li>"
-                            + "<li>Espace disque disponible (/) : " + (freeDisk / 1024 / 1024 / 1024) + " Go</li>"
-                            + "<li>Nombre de processus Linux : " + processCount + "</li>"
-                            + "</ul></body></html>";
+                        + "<h1>Etat de la machine</h1><ul>"
+                        + "<li>Mémoire JVM disponible : " + (freeMem / 1024 / 1024) + " Mo</li>"
+                        + "<li>Espace disque disponible (/) : " + (freeDisk / 1024 / 1024 / 1024) + " Go</li>"
+                        + "<li>Nombre de processus Linux : " + processCount + "</li>"
+                        + "</ul></body></html>";
 
                 byte[] bytes = html.getBytes("UTF-8");
-                sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: " + bytes.length + "\n");
+                sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: "
+                        + bytes.length + "\n");
                 outputStream.write(bytes);
                 outputStream.flush();
                 socket.close();
@@ -121,8 +136,23 @@ public class HttpServer {
 
             // Lire les lignes d'en-tête de la requête HTTP
             String headerLine;
+            String etagClient = null; // Contiendra le If-None-Match
+            String dateClient = null; // Contiendra le If-Modified-Since
             while ((headerLine = clientInput.readLine()) != null && !headerLine.isEmpty()) {
                 System.out.println(headerLine);
+
+                // Utile pour voir ce que le client envoie dans la console
+                System.out.println(headerLine);
+
+                // On passe tout en minuscules pour éviter les problèmes de casse
+                String ligneMinuscule = headerLine.toLowerCase();
+
+                // Vraie syntaxe Java : startsWith et substring
+                if (ligneMinuscule.startsWith("if-none-match:")) {
+                    etagClient = headerLine.substring(headerLine.indexOf(":") + 1).trim();
+                } else if (ligneMinuscule.startsWith("if-modified-since:")) {
+                    dateClient = headerLine.substring(headerLine.indexOf(":") + 1).trim();
+                }
             }
 
             // Vérifier si le fichier demandé existe dans le système de fichiers
@@ -130,7 +160,8 @@ public class HttpServer {
                 if (file.isDirectory()) {
                     // Afficher la liste des fichiers et dossiers
                     StringBuilder html = new StringBuilder();
-                    html.append("<html><head><title>Index of ").append(path).append("</title><meta charset=\"UTF-8\"></head><body>\n");
+                    html.append("<html><head><title>Index of ").append(path)
+                            .append("</title><meta charset=\"UTF-8\"></head><body>\n");
                     html.append("<h1>Index of ").append(path).append("</h1><hr><pre>\n");
 
                     // Lien parent si on n'est pas à la racine
@@ -169,26 +200,60 @@ public class HttpServer {
 
                     String reponse = html.toString();
                     byte[] reponseBytes = reponse.getBytes("UTF-8");
-                    sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: " + reponseBytes.length + "\n");
+                    sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: "
+                            + reponseBytes.length + "\n");
                     outputStream.write(reponseBytes);
                     outputStream.flush();
                 } else {
                     try { // Si le fichier existe :
-                        FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu
 
-                        sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n");
+                        // On calcule le MD5 du fichier tel qu'il est sur le disque MAINTENANT
+                        String etagServeur = calculerMD5(file);
 
-                        byte[] buffer = new byte[1024];
-                        int bytesRead;
-                        // Lire le contenu du fichier dans le tampon
-                        while ((bytesRead = fi.read(buffer)) != -1) {
-                            outputStream.write(buffer, 0, bytesRead);
+                        // On récupère la date de modification du fichier MAINTENANT
+                        String dateServeur = formaterDate(file.lastModified());
+                        boolean leClientEstAJour = false;
+
+                        if (etagClient != null && etagClient.equals(etagServeur)) {
+                            leClientEstAJour = true;
+                        } else if (dateClient != null && dateClient.equals(dateServeur)) {
+                            leClientEstAJour = true;
                         }
 
-                        // Vider le tampon du flux de sortie
-                        outputStream.flush();
-                        fi.close();
+                        if (leClientEstAJour) {
+                            // SCÉNARIO A : Le cache du client est valide (304)
+                            // Attention : on utilise print() et \r\n pour la conformité HTTP
+                            sortie.print("HTTP/1.1 304 Not Modified\r\n");
+                            sortie.print("ETag: " + etagServeur + "\r\n");
+                            sortie.print("Last-Modified: " + dateServeur + "\r\n");
+                            sortie.print("\r\n"); // Ligne vide cruciale
+                            sortie.flush();
 
+                            logToFile(accessLogPath,
+                                    "IP: " + socket.getInetAddress() + " | Cache validé (304) pour " + path);
+
+                        } else {
+                            // SCÉNARIO B : Fichier nouveau ou modifié (200)
+                            sortie.print("HTTP/1.1 200 OK\r\n");
+                            sortie.print("Content-Length: " + file.length() + "\r\n");
+                            sortie.print("ETag: " + etagServeur + "\r\n");
+                            sortie.print("Last-Modified: " + dateServeur + "\r\n");
+                            sortie.print("\r\n"); // Ligne vide cruciale
+                            sortie.flush();
+
+                            // On envoie le corps du fichier
+                            FileInputStream fi = new FileInputStream(file);
+                            byte[] buffer = new byte[1024];
+                            int bytesRead;
+                            while ((bytesRead = fi.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, bytesRead);
+                            }
+
+                            // Vider le tampon du flux de sortie
+                            outputStream.flush();
+                            fi.close();
+
+                        }
                     } catch (FileNotFoundException e) {
                         logToFile(errorLogPath, Erreur404 + path + " (IP: " + socket.getInetAddress() + ")");
                         sortie.println(Erreur404 + path);
@@ -202,6 +267,30 @@ public class HttpServer {
             socket.close();
         }
 
+    }
+
+    private static String calculerMD5(File fichier) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            FileInputStream fis = new FileInputStream(fichier);
+            byte[] buffer = new byte[1024];
+            int nbLectures;
+
+            while ((nbLectures = fis.read(buffer)) != -1) {
+                digest.update(buffer, 0, nbLectures);
+            }
+            fis.close();
+
+            // Conversion des octets en chaîne hexadécimale
+            byte[] bytes = digest.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : bytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return "\"" + sb.toString() + "\""; // L'ETag doit être entouré de guillemets
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static void main(String[] args) throws IOException {
@@ -239,7 +328,7 @@ public class HttpServer {
             config.add(site.getElementsByTagName("Acceslog").item(0));
             config.add(site.getElementsByTagName("Errorlog").item(0));
 
-            gestionSite.put(site.getElementsByTagName("port").item(0).getTextContent(),config);
+            gestionSite.put(site.getElementsByTagName("port").item(0).getTextContent(), config);
 
         }
         // fin lecture du fichier config //
@@ -271,7 +360,6 @@ public class HttpServer {
                     System.out.println(pathDelfaut);
 
                     chargerPage(pathRoot, port, pathDelfaut, pathAcces, pathError);
-
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
