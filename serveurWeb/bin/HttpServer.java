@@ -141,8 +141,7 @@ public class HttpServer {
             while ((headerLine = clientInput.readLine()) != null && !headerLine.isEmpty()) {
                 System.out.println(headerLine);
 
-                // Utile pour voir ce que le client envoie dans la console
-                System.out.println(headerLine);
+                
 
                 // On passe tout en minuscules pour éviter les problèmes de casse
                 String ligneMinuscule = headerLine.toLowerCase();
@@ -221,9 +220,12 @@ public class HttpServer {
                         }
 
                         if (leClientEstAJour) {
-                            // SCÉNARIO A : Le cache du client est valide (304)
+                            String dateActuelle = formaterDate(System.currentTimeMillis()); // Heure de la réponse
+                            
                             // Attention : on utilise print() et \r\n pour la conformité HTTP
                             sortie.print("HTTP/1.1 304 Not Modified\r\n");
+                            sortie.print("Date: " + dateActuelle + "\r\n");
+                            sortie.print("Gallois /1.0\r\n");
                             sortie.print("ETag: " + etagServeur + "\r\n");
                             sortie.print("Last-Modified: " + dateServeur + "\r\n");
                             sortie.print("\r\n"); // Ligne vide cruciale
@@ -233,8 +235,11 @@ public class HttpServer {
                                     "IP: " + socket.getInetAddress() + " | Cache validé (304) pour " + path);
 
                         } else {
-                            // SCÉNARIO B : Fichier nouveau ou modifié (200)
+                            String dateActuelle = formaterDate(System.currentTimeMillis()); // Heure de la réponse
+                            
                             sortie.print("HTTP/1.1 200 OK\r\n");
+                            sortie.print("Date: " + dateActuelle + "\r\n");
+                            sortie.print("Gallois /1.0\r\n");
                             sortie.print("Content-Length: " + file.length() + "\r\n");
                             sortie.print("ETag: " + etagServeur + "\r\n");
                             sortie.print("Last-Modified: " + dateServeur + "\r\n");
