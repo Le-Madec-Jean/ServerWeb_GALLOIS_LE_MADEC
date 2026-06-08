@@ -261,7 +261,7 @@ public class HttpServer {
                     System.err.println(gestionSite.get(clefPort).get(1) + " " + port);
                     System.out.println(pathDelfaut);
 
-                    chargerPage(pathRoot, port, pathDelfaut);
+                    chargerPage(pathRoot, port, pathDelfaut, pathAcces, pathError);
 
 
                 } catch (IOException e) {
