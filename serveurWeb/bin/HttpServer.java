@@ -253,6 +253,8 @@ public class HttpServer {
                     String pathDelfaut = null;
                     if (gestionSite.get(clefPort).get(1) != null) {
                         pathDelfaut = gestionSite.get(clefPort).get(1).getTextContent();
+                    } else {
+                        pathDelfaut = "index.html";
                     }
 
                     String pathAcces = gestionSite.get(clefPort).get(2).getTextContent();
