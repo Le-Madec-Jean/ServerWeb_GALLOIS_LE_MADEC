@@ -23,7 +23,20 @@ import org.xml.sax.SAXException;
 
 public class HttpServer {
 
-    public static void chargerPage(String pathRoot, int port, String pathDefault) throws IOException {
+    public static synchronized void logToFile(String logFilePath, String message) {
+        if (logFilePath == null || logFilePath.isEmpty()) return;
+        try {
+            File file = new File(logFilePath);
+            if (file.getParentFile() != null) file.getParentFile().mkdirs();
+            java.io.PrintWriter out = new java.io.PrintWriter(new java.io.FileWriter(file, true));
+            out.println(new java.util.Date().toString() + " - " + message);
+            out.close();
+        } catch (IOException e) {
+            System.out.println("Erreur d'écriture dans le log : " + e.getMessage());
+        }
+    }
+
+    public static void chargerPage(String pathRoot, int port, String pathDefault, String accessLogPath, String errorLogPath) throws IOException {
 
         // gestion message serveur
         String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n";
@@ -53,8 +66,6 @@ public class HttpServer {
                 continue;
             }
 
-            String cheminFichierFinal;
-
             // Afficher la ligne de tête de la requête HTTP
             System.out.println(head);
             // Extraire le chemin du fichier demandé à partir de la ligne de tête de la
@@ -62,14 +73,48 @@ public class HttpServer {
             String[] tabString = head.split(" ");
             String path = tabString[1];
 
-            System.out.println(path + "  iciiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
-            System.out.println(pathRoot);
 
-            // Si le chemin est "/", servir le fichier "index.html"
-            if (path.equals("/") && pathDefault != null) {
-                cheminFichierFinal = pathRoot + path + "html/" + pathDefault;
-            } else {
-                cheminFichierFinal = pathRoot + path + "html/index.html";
+
+            // log
+            logToFile(accessLogPath, "IP: " + socket.getInetAddress() + " | Requete: " + head);
+
+            // etat de la machine
+            if (path.equals("/status")) {
+                long freeMem = Runtime.getRuntime().freeMemory(); 
+                long freeDisk = new File("/").getFreeSpace();
+                int processCount = 0;
+                try {
+                    Process p = Runtime.getRuntime().exec("ps -e");
+                    BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    while (br.readLine() != null) processCount++;
+                    processCount--; // Enlever l'en-tête de `ps`
+                } catch (Exception e) {}
+
+                String html = "<html><head><meta charset=\"UTF-8\"><title>Etat de la machine</title></head><body>"
+                            + "<h1>Etat de la machine</h1><ul>"
+                            + "<li>Mémoire JVM disponible : " + (freeMem / 1024 / 1024) + " Mo</li>"
+                            + "<li>Espace disque disponible (/) : " + (freeDisk / 1024 / 1024 / 1024) + " Go</li>"
+                            + "<li>Nombre de processus Linux : " + processCount + "</li>"
+                            + "</ul></body></html>";
+
+                byte[] bytes = html.getBytes("UTF-8");
+                sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: " + bytes.length + "\n");
+                outputStream.write(bytes);
+                outputStream.flush();
+                socket.close();
+                continue;
+            }
+
+            String cheminFichierFinal = pathRoot + path;
+            File file = new File(cheminFichierFinal);
+
+            // Si c'est un dossier, on essaie d'abord d'y trouver le fichier par défaut
+            if (file.exists() && file.isDirectory() && !pathDefault.isEmpty()) {
+                File defaultFile = new File(file, pathDefault);
+                if (defaultFile.exists()) {
+                    file = defaultFile;
+                }
+
             }
 
             System.out.println(
@@ -82,28 +127,68 @@ public class HttpServer {
             }
 
             // Vérifier si le fichier demandé existe dans le système de fichiers
-            File file = new File(cheminFichierFinal);
             if (file.exists()) {
-                try { // Si le fichier existe :
-                    FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu
+                if (file.isDirectory()) {
+                    // Afficher la liste des fichiers et dossiers
+                    StringBuilder html = new StringBuilder();
+                    html.append("<html><head><title>Index of ").append(path)
+                            .append("</title><meta charset=\"UTF-8\"></head><body>\n");
+                    html.append("<h1>Index of ").append(path).append("</h1><hr><pre>\n");
 
-                    sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n");
-
-                    byte[] buffer = new byte[1024];
-                    int bytesRead;
-                    // Lire le contenu du fichier dans le tampon
-                    while ((bytesRead = fi.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
+                    // Lien parent si on n'est pas à la racine
+                    if (!path.equals("/")) {
+                        String parentPath = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+                        int lastSlash = parentPath.lastIndexOf("/");
+                        if (lastSlash >= 0) {
+                            parentPath = parentPath.substring(0, lastSlash + 1);
+                            html.append("<a href=\"").append(parentPath).append("\">../</a>\n");
+                        }
                     }
 
-                    // Vider le tampon du flux de sortie
-                    outputStream.flush();
-                    fi.close();
+                    File[] list = file.listFiles();
+                    if (list != null) {
+                        for (File f : list) {
+                            String name = f.getName();
+                            if (f.isDirectory()) {
+                                name += "/";
+                            }
+                            String hrefPath = path.endsWith("/") ? path + name : path + "/" + name;
+                            html.append("<a href=\"").append(hrefPath).append("\">").append(name).append("</a>\n");
+                        }
+                    }
+                    html.append("</pre><hr></body></html>\n");
 
-                } catch (FileNotFoundException e) {
-                    sortie.println(Erreur404 + path);
+                    String reponse = html.toString();
+                    byte[] reponseBytes = reponse.getBytes("UTF-8");
+                    sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: "
+                            + reponseBytes.length + "\n");
+                    outputStream.write(reponseBytes);
+                    outputStream.flush();
+                } else {
+                    try { // Si le fichier existe :
+                        FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu
+
+                        sortie.println("HTTP/1.1 200 OK\n Content-Length: " + file.length() + "\n");
+
+                        byte[] buffer = new byte[1024];
+                        int bytesRead;
+                        // Lire le contenu du fichier dans le tampon
+                        while ((bytesRead = fi.read(buffer)) != -1) {
+                            outputStream.write(buffer, 0, bytesRead);
+                        }
+
+                        // Vider le tampon du flux de sortie
+                        outputStream.flush();
+                        fi.close();
+
+                    } catch (FileNotFoundException e) {
+                        logToFile(errorLogPath, Erreur404 + path + " (IP: " + socket.getInetAddress() + ")");
+                        sortie.println(Erreur404 + path);
+                    }
                 }
             } else {
+                logToFile(errorLogPath, Erreur404 + " (IP: " + socket.getInetAddress() + ")");
+
                 sortie.println(Erreur404);
             }
             socket.close();
@@ -135,6 +220,7 @@ public class HttpServer {
         NodeList siteNodeList = document.getElementsByTagName("site");
 
         // on crée la liste pour stocker les différents éléments du fichier config
+
         TreeMap<String, ArrayList<Node>> gestionSite = new TreeMap<String, ArrayList<Node>>();
 
         for (int i = 0; i < siteNodeList.getLength(); i++) {
@@ -147,6 +233,7 @@ public class HttpServer {
 
             gestionSite.put(site.getElementsByTagName("port").item(0).getTextContent(),
                     config);
+
         }
         // fin lecture du fichier config //
 
@@ -161,6 +248,7 @@ public class HttpServer {
             Thread thread = new Thread(() -> {
                 try {
                     int port = Integer.parseInt(clefPort);
+
                     String pathRoot = gestionSite.get(clefPort).get(0).getTextContent();
                     String pathDelfaut = null;
                     if (gestionSite.get(clefPort).get(1) != null) {
@@ -174,6 +262,7 @@ public class HttpServer {
                     System.out.println(pathDelfaut);
 
                     chargerPage(pathRoot, port, pathDelfaut);
+
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
