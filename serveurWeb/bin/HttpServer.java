@@ -22,7 +22,20 @@ import org.xml.sax.SAXException;
 
 public class HttpServer {
 
-    public static void chargerPage(String pathRoot, int port, String pathDefault) throws IOException {
+    public static synchronized void logToFile(String logFilePath, String message) {
+        if (logFilePath == null || logFilePath.isEmpty()) return;
+        try {
+            File file = new File(logFilePath);
+            if (file.getParentFile() != null) file.getParentFile().mkdirs();
+            java.io.PrintWriter out = new java.io.PrintWriter(new java.io.FileWriter(file, true));
+            out.println(new java.util.Date().toString() + " - " + message);
+            out.close();
+        } catch (IOException e) {
+            System.out.println("Erreur d'écriture dans le log : " + e.getMessage());
+        }
+    }
+
+    public static void chargerPage(String pathRoot, int port, String pathDefault, String accessLogPath, String errorLogPath) throws IOException {
 
         // gestion message serveur
         String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n";
@@ -58,6 +71,36 @@ public class HttpServer {
             // requête HTTP
             String[] tabString = head.split(" ");
             String path = tabString[1];
+
+            // log
+            logToFile(accessLogPath, "IP: " + socket.getInetAddress() + " | Requete: " + head);
+
+            // etat de la machine
+            if (path.equals("/status")) {
+                long freeMem = Runtime.getRuntime().freeMemory(); 
+                long freeDisk = new File("/").getFreeSpace();
+                int processCount = 0;
+                try {
+                    Process p = Runtime.getRuntime().exec("ps -e");
+                    BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    while (br.readLine() != null) processCount++;
+                    processCount--; // Enlever l'en-tête de `ps`
+                } catch (Exception e) {}
+
+                String html = "<html><head><meta charset=\"UTF-8\"><title>Etat de la machine</title></head><body>"
+                            + "<h1>Etat de la machine</h1><ul>"
+                            + "<li>Mémoire JVM disponible : " + (freeMem / 1024 / 1024) + " Mo</li>"
+                            + "<li>Espace disque disponible (/) : " + (freeDisk / 1024 / 1024 / 1024) + " Go</li>"
+                            + "<li>Nombre de processus Linux : " + processCount + "</li>"
+                            + "</ul></body></html>";
+
+                byte[] bytes = html.getBytes("UTF-8");
+                sortie.println("HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: " + bytes.length + "\n");
+                outputStream.write(bytes);
+                outputStream.flush();
+                socket.close();
+                continue;
+            }
 
             String cheminFichierFinal = pathRoot + path;
             File file = new File(cheminFichierFinal);
@@ -132,10 +175,12 @@ public class HttpServer {
                         fi.close();
 
                     } catch (FileNotFoundException e) {
+                        logToFile(errorLogPath, Erreur404 + path + " (IP: " + socket.getInetAddress() + ")");
                         sortie.println(Erreur404 + path);
                     }
                 }
             } else {
+                logToFile(errorLogPath, Erreur404 + " (IP: " + socket.getInetAddress() + ")");
                 sortie.println(Erreur404);
             }
             socket.close();
@@ -177,7 +222,15 @@ public class HttpServer {
             if (site.getElementsByTagName("DefaultIndex").getLength() > 0) {
                 defaultIndex = site.getElementsByTagName("DefaultIndex").item(0).getTextContent();
             }
-            gestionSite.put(port, new String[] { docRoot, defaultIndex });
+            String accessLog = "";
+            if (site.getElementsByTagName("Acceslog").getLength() > 0) {
+                accessLog = site.getElementsByTagName("Acceslog").item(0).getTextContent();
+            }
+            String errorLog = "";
+            if (site.getElementsByTagName("Errorlog").getLength() > 0) {
+                errorLog = site.getElementsByTagName("Errorlog").item(0).getTextContent();
+            }
+            gestionSite.put(port, new String[] { docRoot, defaultIndex, accessLog, errorLog });
         }
         // fin lecture du fichier config //
 
@@ -194,7 +247,9 @@ public class HttpServer {
 
                     String racineDuSite = gestionSite.get(clefPort)[0];
                     String defaultIndex = gestionSite.get(clefPort)[1];
-                    chargerPage(racineDuSite, port, defaultIndex);
+                    String accessLog = gestionSite.get(clefPort)[2];
+                    String errorLog = gestionSite.get(clefPort)[3];
+                    chargerPage(racineDuSite, port, defaultIndex, accessLog, errorLog);
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
