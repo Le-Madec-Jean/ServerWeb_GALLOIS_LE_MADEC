@@ -131,9 +131,7 @@ public class HttpServer {
 
             }
 
-            System.out.println(
-                    cheminFichierFinal + "iciiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
-
+           
             // Lire les lignes d'en-tête de la requête HTTP
             String headerLine;
             String etagClient = null; // Contiendra le If-None-Match
