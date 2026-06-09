@@ -52,11 +52,7 @@ public class HttpServer {
             String errorLogPath) throws IOException {
 
         // gestion message serveur
-        String html404 = "<html><head><title>404 Not Found</title><meta charset=\"UTF-8\"><style>body{font-family: sans-serif; text-align: center; margin-top: 50px;}</style></head><body><h1>404 - Fichier non trouvé</h1><p>La ressource demandée n'existe pas sur ce serveur.</p><hr><p><i>Serveur Web Java SAE</i></p></body></html>";
-        String reponse404 = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: " + html404.getBytes("UTF-8").length + "\r\n\r\n" + html404;
-
-        String html403 = "<html><head><title>403 Forbidden</title><meta charset=\"UTF-8\"><style>body{font-family: sans-serif; text-align: center; margin-top: 50px;}</style></head><body><h1>403 - Accès Interdit</h1><p>Vous n'avez pas l'autorisation d'accéder à cette ressource pour des raisons de sécurité.</p><hr><p><i>Serveur Web Java SAE</i></p></body></html>";
-        String reponse403 = "HTTP/1.1 403 Forbidden\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: " + html403.getBytes("UTF-8").length + "\r\n\r\n" + html403;
+        String Erreur404 = "HTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=UTF-8\n\nErreur 404 Not Found\nFichier non trouvé\n";
 
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("Serveur démarré sur le port " + port);
@@ -90,15 +86,6 @@ public class HttpServer {
             String[] tabString = head.split(" ");
             String path = tabString[1];
 
-            // Sécurité : on empêche de remonter dans les dossiers avec ".." (Faille de Path Traversal)
-            if (path.contains("..")) {
-                logToFile(errorLogPath, "403 Forbidden (Securité) - IP: " + socket.getInetAddress() + " | Path: " + path);
-                sortie.print(reponse403);
-                sortie.flush();
-                socket.close();
-                continue;
-            }
-
             // log
             logToFile(accessLogPath, "IP: " + socket.getInetAddress() + " | Requete: " + head);
 
@@ -110,10 +97,11 @@ public class HttpServer {
                 try {
                     Process p = Runtime.getRuntime().exec("ps -e");
                     BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    while (br.readLine() != null) processCount++;
-                    processCount--; // Enlever l'en-tête de 'ps'
-                } catch (Exception e) {}
-
+                    while (br.readLine() != null)
+                        processCount++;
+                    processCount--; // Enlever l'en-tête de `ps`
+                } catch (Exception e) {
+                }
 
                 String html = "<html><head><meta charset=\"UTF-8\"><title>Etat de la machine</title></head><body>"
                         + "<h1>Etat de la machine</h1><ul>"
@@ -143,9 +131,7 @@ public class HttpServer {
 
             }
 
-            System.out.println(
-                    cheminFichierFinal + "iciiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
-
+           
             // Lire les lignes d'en-tête de la requête HTTP
             String headerLine;
             String etagClient = null; // Contiendra le If-None-Match
@@ -217,17 +203,7 @@ public class HttpServer {
                     outputStream.flush();
                 } else {
                     try { // Si le fichier existe :
-                        String fileName = file.getName().toLowerCase();
-                        String contentType = "application/octet-stream";
-                        
-                        // Détermination du Content-Type basique
-                        if (fileName.endsWith(".html") || fileName.endsWith(".htm")) contentType = "text/html; charset=UTF-8";
-                        else if (fileName.endsWith(".css")) contentType = "text/css";
-                        else if (fileName.endsWith(".js")) contentType = "application/javascript";
-                        else if (fileName.endsWith(".png")) contentType = "image/png";
-                        else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) contentType = "image/jpeg";
-                        else if (fileName.endsWith(".pdf")) contentType = "application/pdf";
-                        else if (fileName.endsWith(".gif")) contentType = "image/gif";
+
                         // On calcule le MD5 du fichier tel qu'il est sur le disque MAINTENANT
                         String etagServeur = calculerMD5(file);
 
@@ -247,84 +223,53 @@ public class HttpServer {
                             // Attention : on utilise print() et \r\n pour la conformité HTTP
                             sortie.print("HTTP/1.1 304 Not Modified\r\n");
                             sortie.print("Date: " + dateActuelle + "\r\n");
-                            sortie.print("Server: Gallois /1.0\r\n");
+                            sortie.print("Gallois /1.0\r\n");
                             sortie.print("ETag: " + etagServeur + "\r\n");
                             sortie.print("Last-Modified: " + dateServeur + "\r\n");
                             sortie.print("\r\n"); // Ligne vide cruciale
                             sortie.flush();
 
-                            logToFile(accessLogPath, "IP: " + socket.getInetAddress() + " | Cache validé (304) pour " + path);
+                            logToFile(accessLogPath,
+                                    "IP: " + socket.getInetAddress() + " | Cache validé (304) pour " + path);
+
                         } else {
                             String dateActuelle = formaterDate(System.currentTimeMillis()); // Heure de la réponse
                             
-                            // On compresse TOUT en gzip maintenant, comme demandé !
-                            boolean compressGzip = true;
+                            sortie.print("HTTP/1.1 200 OK\r\n");
+                            sortie.print("Date: " + dateActuelle + "\r\n");
+                            sortie.print("Gallois /1.0\r\n");
+                            sortie.print("Content-Length: " + file.length() + "\r\n");
+                            sortie.print("ETag: " + etagServeur + "\r\n");
+                            sortie.print("Last-Modified: " + dateServeur + "\r\n");
+                            sortie.print("\r\n"); // Ligne vide cruciale
+                            sortie.flush();
 
-                            FileInputStream fi = new FileInputStream(file); // crée un flux d'entrée pour lire le contenu
-
-                            if (compressGzip) {
-                                // Compresser le fichier en gzip en mémoire
-                                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                                java.util.zip.GZIPOutputStream gzipOut = new java.util.zip.GZIPOutputStream(baos);
-                                
-                                byte[] buffer = new byte[1024];
-                                int bytesRead;
-                                while ((bytesRead = fi.read(buffer)) != -1) {
-                                    gzipOut.write(buffer, 0, bytesRead);
-                                }
-                                gzipOut.close();
-                                
-                                byte[] gzipData = baos.toByteArray();
-                                
-                                // Envoyer les bons en-têtes (Headers)
-                                sortie.print("HTTP/1.1 200 OK\r\n");
-                                sortie.print("Date: " + dateActuelle + "\r\n");
-                                sortie.print("Server: Gallois /1.0\r\n");
-                                sortie.print("Content-Type: " + contentType + "\r\n");
-                                sortie.print("Content-Encoding: gzip\r\n");
-                                sortie.print("ETag: " + etagServeur + "\r\n");
-                                sortie.print("Last-Modified: " + dateServeur + "\r\n");
-                                sortie.print("Content-Length: " + gzipData.length + "\r\n\r\n");// \r\n\"\r\n" sert à indiquer la fin des en-têtes HTTP
-                                sortie.flush();
-                                
-                                // Envoyer le contenu compressé
-                                outputStream.write(gzipData);
-                            } else {
-                                // Envoi normal sans compression
-                                sortie.print("HTTP/1.1 200 OK\r\n");
-                                sortie.print("Date: " + dateActuelle + "\r\n");
-                                sortie.print("Server: Gallois /1.0\r\n");
-                                sortie.print("Content-Type: " + contentType + "\r\n");
-                                sortie.print("ETag: " + etagServeur + "\r\n");
-                                sortie.print("Last-Modified: " + dateServeur + "\r\n");
-                                sortie.print("Content-Length: " + file.length() + "\r\n");
-                                sortie.print("\r\n");
-                                sortie.flush();
-
-                                byte[] buffer = new byte[1024];
-                                int bytesRead;
-                                while ((bytesRead = fi.read(buffer)) != -1) {
-                                    outputStream.write(buffer, 0, bytesRead);
-                                }
+                            // On envoie le corps du fichier
+                            FileInputStream fi = new FileInputStream(file);
+                            byte[] buffer = new byte[1024];
+                            int bytesRead;
+                            while ((bytesRead = fi.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, bytesRead);
                             }
 
                             // Vider le tampon du flux de sortie
                             outputStream.flush();
                             fi.close();
+
                         }
                     } catch (FileNotFoundException e) {
-                        logToFile(errorLogPath, "404 Not Found - Path: " + path + " (IP: " + socket.getInetAddress() + ")");
-                        sortie.print(reponse404);
-                        sortie.flush();
+                        logToFile(errorLogPath, Erreur404 + path + " (IP: " + socket.getInetAddress() + ")");
+                        sortie.println(Erreur404 + path);
                     }
                 }
             } else {
-                logToFile(errorLogPath, "404 Not Found - Path: " + path + " (IP: " + socket.getInetAddress() + ")");
-                sortie.print(reponse404);
-                sortie.flush();
+                logToFile(errorLogPath, Erreur404 + " (IP: " + socket.getInetAddress() + ")");
+
+                sortie.println(Erreur404);
             }
             socket.close();
         }
+
     }
 
     private static String calculerMD5(File fichier) {
