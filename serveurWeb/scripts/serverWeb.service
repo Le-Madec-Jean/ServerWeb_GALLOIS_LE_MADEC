@@ -1,0 +1,20 @@
+[Unit]
+Description=MyWeb - Serveur Web Configurable (SAE 2.03)
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=%h/serveurWeb/run/myweb.pid
+
+ExecStart=%h/serveurWeb/scripts/start.sh
+ExecStop=%h/serveurWeb/scripts/stop.sh
+
+WorkingDirectory=%h/serveurWeb/bin
+Restart=on-failure
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=myweb
+
+[Install]
+WantedBy=multi-user.target
