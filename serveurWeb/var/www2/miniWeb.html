@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Laboratoire de tests - Port 8080</title>
+    <!-- Le serveur doit renvoyer ce fichier avec Content-Type: text/css -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Banc d'essai - Serveur Web (Port 8080)</h1>
+    
+    <div class="boite">
+        <h2>Tests réussis si tu vois cette page correctement stylisée :</h2>
+        <ul>
+            <li>Le fichier de configuration XML a bien pointé vers <code>var/www2</code></li>
+            <li>Le fichier par défaut <code>miniWeb.html</code> est bien chargé</li>
+            <li>Le serveur a bien renvoyé <code>style.css</code> avec le bon type MIME</li>
+        </ul>
+    </div>
+
+    <div class="boite">
+        <h2>Autres tests à effectuer :</h2>
+        <ul>
+            <li>Test du code exécutable côté serveur : <a href="demo.html">Aller sur demo.html</a></li>
+            <li>Test du status système : <a href="/status">Voir l'état (/status)</a></li>
+            <li>Test d'erreur 404 : <a href="fichier_fantome.html">Fichier inexistant</a></li>
+            <li>Test de listing (répertoire vide) : <a href="dossier_vide/">Voir le listing</a></li>
+        </ul>
+    </div>
+</body>
+</html>
