@@ -1,15 +1,15 @@
 #!/bin/bash
 # stop.sh - Arrete le serveur web
 
-RUN_DIR="$(dirname "$0")/../run"
-PID_FILE="$RUN_DIR/myweb.pid"
+# Se placer dans le dossier du script
+cd "$(dirname "$0")" || exit 1
 
-if [ ! -f "$PID_FILE" ]; then
+if [ ! -f "../run/myweb.pid" ]; then
     echo "Le serveur n'est pas en cours d'execution."
     exit 1
 fi
 
-PID=$(cat "$PID_FILE")
+PID=$(cat "../run/myweb.pid")
 kill "$PID"
-rm -f "$PID_FILE"
+rm -f "../run/myweb.pid"
 echo "Serveur arrete (PID : $PID)"
