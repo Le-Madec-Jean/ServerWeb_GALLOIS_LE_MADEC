@@ -1,0 +1,26 @@
+@startuml
+class HttpServer {
+
+    + HttpServer()
+
+    + chargerPage(String, int, String, String, String) : void
+
+    - traiterHtmlDynamique(File) : byte[]
+
+    - calculerMD5(File) : String
+
+    - formaterDate(long) : String
+
+    + logToFile(String, String) : void
+
+    - doitEtreZippe(String) : boolean
+
+    + main(String[]) : void
+
+    - compresserGZip(byte[]) : byte[]
+
+    - getContentType(String) : String
+
+    - executerScript(String, String) : String
+}
+@enduml
