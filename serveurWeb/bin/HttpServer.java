@@ -22,8 +22,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * Serveur Web configurable - SAE 2.03
- * Auteurs : GALLOIS Pierre, LE MADEC Jean
+ * par : GALLOIS Pierre, LE MADEC Jean
  */
 public class HttpServer {
 
@@ -99,13 +98,13 @@ public class HttpServer {
     private static String getContentType(String nomFichier) {
         String nom = nomFichier.toLowerCase();
         if (nom.endsWith(".html") || nom.endsWith(".htm")) return "text/html; charset=UTF-8";
-        if (nom.endsWith(".css"))   return "text/css; charset=UTF-8";
-        if (nom.endsWith(".js"))    return "application/javascript";
-        if (nom.endsWith(".png"))   return "image/png";
+        if (nom.endsWith(".css")) return "text/css; charset=UTF-8";
+        if (nom.endsWith(".js")) return "application/javascript";
+        if (nom.endsWith(".png")) return "image/png";
         if (nom.endsWith(".jpg") || nom.endsWith(".jpeg")) return "image/jpeg";
-        if (nom.endsWith(".gif"))   return "image/gif";
-        if (nom.endsWith(".pdf"))   return "application/pdf";
-        if (nom.endsWith(".txt"))   return "text/plain; charset=UTF-8";
+        if (nom.endsWith(".gif")) return "image/gif";
+        if (nom.endsWith(".pdf")) return "application/pdf";
+        if (nom.endsWith(".txt")) return "text/plain; charset=UTF-8";
         return "application/octet-stream";
     }
 
@@ -118,8 +117,7 @@ public class HttpServer {
      */
     private static boolean doitEtreGzippe(String nomFichier) {
         String nom = nomFichier.toLowerCase();
-        return nom.endsWith(".png") || nom.endsWith(".jpg") || nom.endsWith(".jpeg")
-            || nom.endsWith(".gif") || nom.endsWith(".pdf");
+        return nom.endsWith(".png") || nom.endsWith(".jpg") || nom.endsWith(".jpeg") || nom.endsWith(".gif") || nom.endsWith(".pdf");
     }
 
     /**
@@ -149,8 +147,7 @@ public class HttpServer {
         try {
             ProcessBuilder pb = new ProcessBuilder(interpreteur, "-c", code);
             Process processus = pb.start();
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(processus.getInputStream(), "UTF-8"));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(processus.getInputStream(), "UTF-8"));
             StringBuilder sortie = new StringBuilder();
             String ligne;
             while ((ligne = reader.readLine()) != null) {
@@ -178,15 +175,13 @@ public class HttpServer {
 
         // Regex pour trouver les balises <code interpreteur="...">...</code>
         // Gère les guillemets " ' « »
-        Pattern pattern = Pattern.compile(
-                "<code[\\s]+interpreteur=[«\"']?([^»\"'\\s>]+)[»\"']?[^>]*>(.*?)</code>",
-                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        Pattern pattern = Pattern.compile("<code[\\s]+interpreteur=[«\"']?([^»\"'\\s>]+)[»\"']?[^>]*>(.*?)</code>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
         Matcher matcher = pattern.matcher(texte);
         StringBuffer resultat = new StringBuffer();
 
         while (matcher.find()) {
             String interpreteur = matcher.group(1).trim(); // ex: /bin/bash
-            String code = matcher.group(2).trim();         // le script à exécuter
+            String code = matcher.group(2).trim(); // le script à exécuter
             String sortie = executerScript(interpreteur, code);
             matcher.appendReplacement(resultat, Matcher.quoteReplacement(sortie));
         }
@@ -209,8 +204,7 @@ public class HttpServer {
      * @param errorLogPath Le fichier où enregistrer les requêtes en erreur (ex: 404).
      * @throws IOException Si la création du serveur sur ce port échoue.
      */
-    public static void chargerPage(String pathRoot, int port, String pathDefault,
-                                   String accessLogPath, String errorLogPath) throws IOException {
+    public static void chargerPage(String pathRoot, int port, String pathDefault, String accessLogPath, String errorLogPath) throws IOException {
 
         String erreur404 = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n404 Not Found\n";
         String erreur403 = "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n403 Forbidden\n";
@@ -252,15 +246,16 @@ public class HttpServer {
             String ligneEntete;
             while ((ligneEntete = entree.readLine()) != null && !ligneEntete.isEmpty()) {
                 String lower = ligneEntete.toLowerCase();
-                if (lower.startsWith("if-none-match:"))
+                if (lower.startsWith("if-none-match:")) {
                     etagClient = ligneEntete.substring(ligneEntete.indexOf(':') + 1).trim();
-                else if (lower.startsWith("if-modified-since:"))
+                } else if (lower.startsWith("if-modified-since:")) {
                     dateModifClient = ligneEntete.substring(ligneEntete.indexOf(':') + 1).trim();
-                else if (lower.startsWith("accept-encoding:") && lower.contains("gzip"))
+                } else if (lower.startsWith("accept-encoding:") && lower.contains("gzip")) {
                     accepteGzip = true;
+                }
             }
 
-            // --- Page /status : état de la machine ---
+            //  Page /status : état de la machine 
             if (cheminDemande.equals("/status")) {
                 long memLibre   = Runtime.getRuntime().freeMemory();
                 long disqueLibre = new File("/").getFreeSpace();
@@ -269,16 +264,17 @@ public class HttpServer {
                     Process p = Runtime.getRuntime().exec("ps -e");
                     BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
                     while (br.readLine() != null) nbProcessus++;
-                    nbProcessus--; // enlever la ligne d'en-tête de ps
+                    nbProcessus--; // enlever la ligne d'en tête de ps
                     br.close();
                 } catch (Exception e) {}
 
-                String html = "<html><head><meta charset=\"UTF-8\"><title>Etat serveur</title></head><body>"
-                        + "<h1>Etat de la machine</h1><ul>"
-                        + "<li>Memoire JVM disponible : " + (memLibre / 1024 / 1024) + " Mo</li>"
-                        + "<li>Espace disque disponible (/) : " + (disqueLibre / 1024 / 1024 / 1024) + " Go</li>"
-                        + "<li>Nombre de processus Linux : " + nbProcessus + "</li>"
-                        + "</ul></body></html>";
+                String html = "<html><head><meta charset=\"UTF-8\"><title>Etat serveur</title></head><body>" 
+                + "<h1>Etat de la machine</h1><ul>"
+                + "<li>Memoire JVM disponible : " + (memLibre / 1024 / 1024) + " Mo</li>"
+                + "<li>Espace disque disponible (/) : " + (disqueLibre / 1024 / 1024 / 1024) + " Go</li>"
+                + "<li>Nombre de processus Linux : " + nbProcessus + "</li>"
+                + "</ul></body></html>";
+
                 byte[] corps = html.getBytes("UTF-8");
                 sortieTexte.print("HTTP/1.1 200 OK\r\n");
                 sortieTexte.print("Date: " + formaterDate(System.currentTimeMillis()) + "\r\n");
@@ -292,7 +288,9 @@ public class HttpServer {
                 continue;
             }
 
-            // --- Sécurité : bloquer les chemins avec ".." ---
+            //  Sécurité : bloquer les chemins avec ".." : recherche sur internet pour réussir à faire ça
+            
+            
             if (cheminDemande.contains("..")) {
                 logToFile(errorLogPath, "403 (chemin interdit) : " + cheminDemande + " (IP: " + socket.getInetAddress() + ")");
                 sortieTexte.print(erreur403);
@@ -316,7 +314,7 @@ public class HttpServer {
                 }
             }
 
-            // --- Fichier introuvable → 404 ---
+            //  Fichier introuvable : 404 
             if (!fichier.exists()) {
                 logToFile(errorLogPath, "404 : " + cheminDemande + " (IP: " + socket.getInetAddress() + ")");
                 sortieTexte.print(erreur404);
@@ -325,11 +323,10 @@ public class HttpServer {
                 continue;
             }
 
-            // --- C'est un dossier sans fichier par défaut → listing ---
+            //  C'est un dossier sans fichier par défaut : listing 
             if (fichier.isDirectory()) {
                 StringBuilder html = new StringBuilder();
-                html.append("<html><head><meta charset=\"UTF-8\"><title>Index de ").append(cheminDemande)
-                        .append("</title></head><body>\n");
+                html.append("<html><head><meta charset=\"UTF-8\"><title>Index de ").append(cheminDemande).append("</title></head><body>\n");
                 html.append("<h1>Index de ").append(cheminDemande).append("</h1><hr><pre>\n");
 
                 // Lien vers le dossier parent
@@ -382,17 +379,16 @@ public class HttpServer {
                 continue;
             }
 
-            // --- C'est un fichier normal ---
+            //  C'est un fichier normal 
             try {
-                String etagServeur     = calculerMD5(fichier);
+                String etagServeur = calculerMD5(fichier);
                 String dateModifServeur = formaterDate(fichier.lastModified());
-                String dateActuelle    = formaterDate(System.currentTimeMillis());
-                String contentType     = getContentType(fichier.getName());
+                String dateActuelle = formaterDate(System.currentTimeMillis());
+                String contentType = getContentType(fichier.getName());
                 boolean faireGzip = doitEtreGzippe(fichier.getName()) && accepteGzip;
 
-                // Vérification du cache : si le client a déjà la bonne version → 304
-                boolean clientAJour = (etagClient != null && etagClient.equals(etagServeur))
-                                   || (dateModifClient != null && dateModifClient.equals(dateModifServeur));
+                // Vérification du cache : si le client a déjà la bonne version : 304
+                boolean clientAJour = (etagClient != null && etagClient.equals(etagServeur)) || (dateModifClient != null && dateModifClient.equals(dateModifServeur));
 
                 if (clientAJour) {
                     sortieTexte.print("HTTP/1.1 304 Not Modified\r\n");
@@ -431,7 +427,9 @@ public class HttpServer {
                 sortieTexte.print("Content-Length: " + corps.length + "\r\n");
                 sortieTexte.print("ETag: " + etagServeur + "\r\n");
                 sortieTexte.print("Last-Modified: " + dateModifServeur + "\r\n");
-                if (faireGzip) sortieTexte.print("Content-Encoding: gzip\r\n");
+                if (faireGzip) {
+                    sortieTexte.print("Content-Encoding: gzip\r\n");
+                }
                 sortieTexte.print("\r\n");
                 sortieTexte.flush();
 
@@ -488,7 +486,7 @@ public class HttpServer {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
 
-        // Map : port (String) → liste [DocumentRoot, DefaultIndex, AccesLog, ErrorLog]
+        // Map : port (String) : liste [DocumentRoot, DefaultIndex, AccesLog, ErrorLog]
         TreeMap<String, ArrayList<Node>> gestionSite = new TreeMap<String, ArrayList<Node>>();
 
         for (int c = 0; c < tousLesConf.length; c++) {
@@ -504,8 +502,8 @@ public class HttpServer {
                 Element site = (Element) sites.item(i);
                 config.add(site.getElementsByTagName("DocumentRoot").item(0)); // 0
                 config.add(site.getElementsByTagName("DefaultIndex").item(0)); // 1
-                config.add(site.getElementsByTagName("Acceslog").item(0));     // 2
-                config.add(site.getElementsByTagName("Errorlog").item(0));     // 3
+                config.add(site.getElementsByTagName("Acceslog").item(0)); // 2
+                config.add(site.getElementsByTagName("Errorlog").item(0)); // 3
                 String port = site.getElementsByTagName("port").item(0).getTextContent().trim();
                 gestionSite.put(port, config);
                 System.out.println("Site sur le port " + port);
