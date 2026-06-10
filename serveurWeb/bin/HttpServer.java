@@ -29,15 +29,26 @@ public class HttpServer {
 
     //  MÉTHODES UTILITAIRES 
 
-    // Formate une date en format HTTP (RFC-1123)
-    // Ex : "Tue, 10 Jun 2025 12:00:00 GMT"
+    /**
+     * Formate un timestamp en une date au format HTTP (RFC-1123).
+     * Exemple de sortie : "Tue, 10 Jun 2026 12:00:00 GMT".
+     *
+     * @param timestamp Le temps en millisecondes (depuis le 1er janvier 1970).
+     * @return La date formatée en chaine de caractères pour les en-têtes HTTP.
+     */
     private static String formaterDate(long timestamp) {
         SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         return sdf.format(new Date(timestamp));
     }
 
-    // Écrit une ligne dans un fichier de log
+    /**
+     * Écrit un message avec la date actuelle dans un fichier journal (log).
+     * Si le dossier ou le fichier n'existe pas, il sera créé automatiquement.
+     *
+     * @param cheminLog Le chemin du fichier de log.
+     * @param message Le message à enregistrer (ex: erreur, accès, etc.).
+     */
     public static void logToFile(String cheminLog, String message) {
         if (cheminLog == null || cheminLog.isEmpty()) return;
         try {
@@ -51,7 +62,13 @@ public class HttpServer {
         }
     }
 
-    // Calcule le MD5 d'un fichier (utilisé pour l'ETag)
+    /**
+     * Calcule l'empreinte numérique (MD5) du contenu d'un fichier.
+     * Cette empreinte est utilisée pour générer la valeur de l'en-tête ETag du cache HTTP.
+     *
+     * @param fichier Le fichier dont on veut calculer l'empreinte.
+     * @return L'empreinte MD5 sous forme de texte hexadécimal (entre guillemets), ou null en cas d'erreur.
+     */
     private static String calculerMD5(File fichier) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
@@ -73,7 +90,12 @@ public class HttpServer {
         }
     }
 
-    // Retourne le Content-Type selon l'extension du fichier
+    /**
+     * Détermine le type MIME (Content-Type HTTP) d'un fichier en se basant sur son extension.
+     *
+     * @param nomFichier Le nom ou chemin du fichier.
+     * @return Le type MIME correspondant (ex: "text/html", "image/png").
+     */
     private static String getContentType(String nomFichier) {
         String nom = nomFichier.toLowerCase();
         if (nom.endsWith(".html") || nom.endsWith(".htm")) return "text/html; charset=UTF-8";
@@ -87,14 +109,26 @@ public class HttpServer {
         return "application/octet-stream";
     }
 
-    // Retourne true si le fichier doit être envoyé en gzip (images et PDF)
+    /**
+     * Indique si un fichier doit être compressé avec l'algorithme GZIP avant envoi.
+     * Les consignes stipulent que cela concerne les images (png, jpg, gif) et les documents PDF.
+     *
+     * @param nomFichier Le nom du fichier à vérifier.
+     * @return true si le fichier correspond à un type compressible, false sinon.
+     */
     private static boolean doitEtreGzippe(String nomFichier) {
         String nom = nomFichier.toLowerCase();
         return nom.endsWith(".png") || nom.endsWith(".jpg") || nom.endsWith(".jpeg")
             || nom.endsWith(".gif") || nom.endsWith(".pdf");
     }
 
-    // Compresse des octets en gzip et retourne le résultat
+    /**
+     * Compresse un tableau d'octets en utilisant l'algorithme GZIP.
+     *
+     * @param donnees Les données brutes à compresser.
+     * @return Le tableau d'octets contenant les données compressées.
+     * @throws IOException Si une erreur survient pendant la compression.
+     */
     private static byte[] compresserGzip(byte[] donnees) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         GZIPOutputStream gzip = new GZIPOutputStream(baos);
@@ -103,7 +137,14 @@ public class HttpServer {
         return baos.toByteArray();
     }
 
-    // Exécute un script avec un interpréteur et retourne sa sortie
+    /**
+     * Exécute une commande ou un script via un processus système (ex: bash, python)
+     * et récupère le texte affiché en sortie (stdout).
+     *
+     * @param interpreteur Le chemin de l'interpréteur (ex: "/bin/bash", "/usr/bin/python3").
+     * @param code Le code ou la commande à faire exécuter.
+     * @return Le résultat texte retourné par le script, ou un message d'erreur.
+     */
     private static String executerScript(String interpreteur, String code) {
         try {
             ProcessBuilder pb = new ProcessBuilder(interpreteur, "-c", code);
@@ -123,8 +164,14 @@ public class HttpServer {
         }
     }
 
-    // Lit un fichier HTML, exécute les balises <code interpreteur="...">...</code>
-    // et retourne la page modifiée en octets
+    /**
+     * Lit un fichier HTML, recherche toutes les balises du type {@code <code interpreteur="...">...</code>},
+     * exécute le code qu'elles contiennent et remplace la balise par le résultat d'exécution.
+     *
+     * @param fichier Le fichier HTML dynamique contenant les balises.
+     * @return Le contenu final de la page modifiée, prêt à être envoyé au navigateur.
+     * @throws IOException En cas de problème de lecture du fichier original.
+     */
     private static byte[] traiterHtmlDynamique(File fichier) throws IOException {
         // On lit tout le fichier HTML en mémoire
         String texte = new String(Files.readAllBytes(fichier.toPath()), "UTF-8");
@@ -149,7 +196,19 @@ public class HttpServer {
 
     //  GESTION DES REQUÊTES
 
-    // Lance le serveur sur un port et répond aux requêtes HTTP en boucle
+    /**
+     * Moteur principal d'un site web (exécuté dans un Thread séparé).
+     * Crée le serveur, écoute sur le port attribué, et répond aux requêtes HTTP en continu.
+     * Gère toutes les fonctionnalités : ETag, code dynamique, page de status,
+     * blocage des attaques (Path Traversal), listing de dossiers, et GZIP.
+     *
+     * @param pathRoot Le dossier racine contenant les fichiers de ce site.
+     * @param port Le port réseau sur lequel le serveur écoute (ex: 80, 8080).
+     * @param pathDefault Le nom du fichier à charger par défaut dans un dossier.
+     * @param accessLogPath Le fichier où enregistrer les requêtes réussies.
+     * @param errorLogPath Le fichier où enregistrer les requêtes en erreur (ex: 404).
+     * @throws IOException Si la création du serveur sur ce port échoue.
+     */
     public static void chargerPage(String pathRoot, int port, String pathDefault,
                                    String accessLogPath, String errorLogPath) throws IOException {
 
@@ -396,6 +455,15 @@ public class HttpServer {
 
     //  MÉTHODE PRINCIPALE 
 
+    /**
+     * Point d'entrée principal du programme.
+     * - Création du fichier PID du serveur.
+     * - Lecture des fichiers de configuration XML (*.conf).
+     * - Création d'un Thread indépendant pour chaque site/port configuré.
+     *
+     * @param args Les arguments passés au lancement (non utilisés).
+     * @throws Exception Si une erreur critique survient au lancement (ex: erreur XML).
+     */
     public static void main(String[] args) throws Exception {
 
         // Écriture du fichier PID (numéro du processus Java)
