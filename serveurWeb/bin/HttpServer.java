@@ -180,7 +180,10 @@ public class HttpServer {
 
             // Extraire le chemin demandé (ex: /index.html)
             String[] parties = ligneRequete.split(" ");
-            if (parties.length < 2) { socket.close(); continue; }
+            if (parties.length < 2) {
+                socket.close();
+                continue;
+            }
             String cheminDemande = parties[1];
 
             // Lire les en-têtes HTTP envoyés par le navigateur
@@ -272,9 +275,12 @@ public class HttpServer {
 
                 // Lien vers le dossier parent
                 if (!cheminDemande.equals("/")) {
-                    String parent = cheminDemande.endsWith("/")
-                            ? cheminDemande.substring(0, cheminDemande.length() - 1)
-                            : cheminDemande;
+                    String parent;
+                    if (cheminDemande.endsWith("/")) {
+                        parent = cheminDemande.substring(0, cheminDemande.length() - 1);
+                    } else {
+                        parent = cheminDemande;
+                    }
                     int dernierSlash = parent.lastIndexOf('/');
                     if (dernierSlash >= 0) {
                         parent = parent.substring(0, dernierSlash + 1);
@@ -286,8 +292,18 @@ public class HttpServer {
                 File[] liste = fichier.listFiles();
                 if (liste != null) {
                     for (File f : liste) {
-                        String nom = f.getName() + (f.isDirectory() ? "/" : "");
-                        String href = cheminDemande.endsWith("/") ? cheminDemande + nom : cheminDemande + "/" + nom;
+                        String nom;
+                        if (f.isDirectory()) {
+                            nom = f.getName() + "/";
+                        } else {
+                            nom = f.getName();
+                        }
+                        String href;
+                        if (cheminDemande.endsWith("/")) {
+                            href = cheminDemande + nom;
+                        } else {
+                            href = cheminDemande + "/" + nom;
+                        }
                         html.append("<a href=\"").append(href).append("\">").append(nom).append("</a>\n");
                     }
                 }
@@ -383,7 +399,9 @@ public class HttpServer {
     public static void main(String[] args) throws Exception {
 
         // Écriture du fichier PID (numéro du processus Java)
-        String pidStr = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
+        // ManagementFactory retourne quelque chose comme "1234@nomMachine", on prend juste le chiffre
+        String nomJvm = ManagementFactory.getRuntimeMXBean().getName();
+        String pidStr = nomJvm.split("@")[0];
         File repRun = new File("../run");
         repRun.mkdirs();
         PrintWriter pidWriter = new PrintWriter(new FileWriter(new File(repRun, "myweb.pid")));
@@ -399,7 +417,8 @@ public class HttpServer {
             System.exit(1);
         }
 
-        DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
 
         // Map : port (String) → liste [DocumentRoot, DefaultIndex, AccesLog, ErrorLog]
         TreeMap<String, ArrayList<Node>> gestionSite = new TreeMap<String, ArrayList<Node>>();
@@ -439,10 +458,30 @@ public class HttpServer {
                         Node nodeAcces = gestionSite.get(clefPort).get(2);
                         Node nodeError = gestionSite.get(clefPort).get(3);
 
-                        String pathRoot    = (nodeRoot  != null) ? nodeRoot.getTextContent().trim()  : "../var/www";
-                        String pathDefault = (nodeIndex != null) ? nodeIndex.getTextContent().trim() : "index.html";
-                        String pathAcces   = (nodeAcces != null) ? nodeAcces.getTextContent().trim() : "";
-                        String pathError   = (nodeError != null) ? nodeError.getTextContent().trim() : "";
+                        String pathRoot;
+                        if (nodeRoot != null) {
+                            pathRoot = nodeRoot.getTextContent().trim();
+                        } else {
+                            pathRoot = "../var/www";
+                        }
+                        String pathDefault;
+                        if (nodeIndex != null) {
+                            pathDefault = nodeIndex.getTextContent().trim();
+                        } else {
+                            pathDefault = "index.html";
+                        }
+                        String pathAcces;
+                        if (nodeAcces != null) {
+                            pathAcces = nodeAcces.getTextContent().trim();
+                        } else {
+                            pathAcces = "";
+                        }
+                        String pathError;
+                        if (nodeError != null) {
+                            pathError = nodeError.getTextContent().trim();
+                        } else {
+                            pathError = "";
+                        }
 
                         chargerPage(pathRoot, port, pathDefault, pathAcces, pathError);
                     } catch (IOException e) {
