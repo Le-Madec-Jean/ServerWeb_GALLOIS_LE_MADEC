@@ -2,4 +2,5 @@ Package: myweb
 Version: 1.0
 Architecture: all
 Maintainer: Pierre GALLOIS et Jean LE MADEC
+Depends: default-jre
 Description: Serveur Web configurable Java

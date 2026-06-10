@@ -1,5 +1,5 @@
 [Unit]
-Description=MyWeb - Serveur Web Configurable (SAE 2.03)
+Description=MyWeb - Serveur Web Configurable
 After=network.target
 
 [Service]
