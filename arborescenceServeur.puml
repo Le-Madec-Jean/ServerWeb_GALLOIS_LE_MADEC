@@ -9,10 +9,13 @@
 
 /myweb/DEBIAN/control
 /myweb/lib/systemd/system/serverWeb.service
-/myweb/opt/serveurWeb/bin/
-/myweb/opt/serveurWeb/conf.d/
+/myweb/opt/serveurWeb/bin/HttpServer$1.class
+/myweb/opt/serveurWeb/bin/HttpServer.class
+/myweb/opt/serveurWeb/conf.d/serverWeb.conf
+/myweb/opt/serveurWeb/conf.d/siteTest.conf
 /myweb/opt/serveurWeb/run/
-/myweb/opt/serveurWeb/scripts/
+/myweb/opt/serveurWeb/scripts/start.sh
+/myweb/opt/serveurWeb/scripts/stop.sh
 
 /serveurWeb/bin/HttpServer$1.class
 /serveurWeb/bin/HttpServer.class
@@ -34,8 +37,8 @@
 /serveurWeb/var/site-1/miniWeb.html
 /serveurWeb/var/site-1/technique.html
 /serveurWeb/var/site-1/test.png
-/serveurWeb/var/site-2/dossier_vide/
 /serveurWeb/var/site-2/demo.html
+/serveurWeb/var/site-2/dossier_vide/
 /serveurWeb/var/site-2/miniWeb.html
 /serveurWeb/var/site-2/style.css
 /serveurWeb/var/site-3/images/l1.gif
