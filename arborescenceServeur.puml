@@ -5,8 +5,10 @@
 /arborescenceServeur.png
 /arborescenceServeur.puml
 /binome.txt
+/myweb.deb
 
 /myweb/DEBIAN/control
+/myweb/lib/systemd/system/serverWeb.service
 /myweb/opt/serveurWeb/bin/
 /myweb/opt/serveurWeb/conf.d/
 /myweb/opt/serveurWeb/run/
