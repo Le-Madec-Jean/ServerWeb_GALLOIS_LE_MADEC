@@ -26,7 +26,7 @@ import org.w3c.dom.NodeList;
  */
 public class HttpServer {
 
-    //  MÉTHODES UTILITAIRES 
+    // MÉTHODES UTILITAIRES
 
     /**
      * Formate un timestamp en une date au format HTTP (RFC-1123).
@@ -46,13 +46,15 @@ public class HttpServer {
      * Si le dossier ou le fichier n'existe pas, il sera créé automatiquement.
      *
      * @param cheminLog Le chemin du fichier de log.
-     * @param message Le message à enregistrer (ex: erreur, accès, etc.).
+     * @param message   Le message à enregistrer (ex: erreur, accès, etc.).
      */
     public static void logToFile(String cheminLog, String message) {
-        if (cheminLog == null || cheminLog.isEmpty()) return;
+        if (cheminLog == null || cheminLog.isEmpty())
+            return;
         try {
             File f = new File(cheminLog);
-            if (f.getParentFile() != null) f.getParentFile().mkdirs();
+            if (f.getParentFile() != null)
+                f.getParentFile().mkdirs();
             PrintWriter out = new PrintWriter(new FileWriter(f, true));
             out.println(new java.util.Date() + " - " + message);
             out.close();
@@ -63,11 +65,14 @@ public class HttpServer {
 
     /**
      * Calcule l'empreinte numérique (MD5) du contenu d'un fichier.
-     * Cette empreinte est utilisée pour générer la valeur de l'en-tête ETag du cache HTTP.
+     * Cette empreinte est utilisée pour générer la valeur de l'en-tête ETag du
+     * cache HTTP.
      *
      * @param fichier Le fichier dont on veut calculer l'empreinte.
-     * @return L'empreinte MD5 sous forme de texte hexadécimal (entre guillemets), ou null en cas d'erreur.
+     * @return L'empreinte MD5 sous forme de texte hexadécimal (entre guillemets),
+     *         ou null en cas d'erreur.
      */
+    // on a cherché sur internet comment faire un hash MD5 en java pour les ETag
     private static String calculerMD5(File fichier) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
@@ -90,34 +95,45 @@ public class HttpServer {
     }
 
     /**
-     * Détermine le type MIME (Content-Type HTTP) d'un fichier en se basant sur son extension.
+     * Détermine le type MIME (Content-Type HTTP) d'un fichier en se basant sur son
+     * extension.
      *
      * @param nomFichier Le nom ou chemin du fichier.
      * @return Le type MIME correspondant (ex: "text/html", "image/png").
      */
     private static String getContentType(String nomFichier) {
         String nom = nomFichier.toLowerCase();
-        if (nom.endsWith(".html") || nom.endsWith(".htm")) return "text/html; charset=UTF-8";
-        if (nom.endsWith(".css")) return "text/css; charset=UTF-8";
-        if (nom.endsWith(".js")) return "application/javascript";
-        if (nom.endsWith(".png")) return "image/png";
-        if (nom.endsWith(".jpg") || nom.endsWith(".jpeg")) return "image/jpeg";
-        if (nom.endsWith(".gif")) return "image/gif";
-        if (nom.endsWith(".pdf")) return "application/pdf";
-        if (nom.endsWith(".txt")) return "text/plain; charset=UTF-8";
+        if (nom.endsWith(".html") || nom.endsWith(".htm"))
+            return "text/html; charset=UTF-8";
+        if (nom.endsWith(".css"))
+            return "text/css; charset=UTF-8";
+        if (nom.endsWith(".js"))
+            return "application/javascript";
+        if (nom.endsWith(".png"))
+            return "image/png";
+        if (nom.endsWith(".jpg") || nom.endsWith(".jpeg"))
+            return "image/jpeg";
+        if (nom.endsWith(".gif"))
+            return "image/gif";
+        if (nom.endsWith(".pdf"))
+            return "application/pdf";
+        if (nom.endsWith(".txt"))
+            return "text/plain; charset=UTF-8";
         return "application/octet-stream";
     }
 
     /**
      * Indique si un fichier doit être compressé avec l'algorithme GZIP avant envoi.
-     * Les consignes stipulent que cela concerne les images (png, jpg, gif) et les documents PDF.
+     * Les consignes stipulent que cela concerne les images (png, jpg, gif) et les
+     * documents PDF.
      *
      * @param nomFichier Le nom du fichier à vérifier.
      * @return true si le fichier correspond à un type compressible, false sinon.
      */
     private static boolean doitEtreGzippe(String nomFichier) {
         String nom = nomFichier.toLowerCase();
-        return nom.endsWith(".png") || nom.endsWith(".jpg") || nom.endsWith(".jpeg") || nom.endsWith(".gif") || nom.endsWith(".pdf");
+        return nom.endsWith(".png") || nom.endsWith(".jpg") || nom.endsWith(".jpeg") || nom.endsWith(".gif")
+                || nom.endsWith(".pdf");
     }
 
     /**
@@ -127,6 +143,8 @@ public class HttpServer {
      * @return Le tableau d'octets contenant les données compressées.
      * @throws IOException Si une erreur survient pendant la compression.
      */
+    // pour gzip : on savait pas trop comment faire, on a regardé des exemples en
+    // ligne
     private static byte[] compresserGzip(byte[] donnees) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         GZIPOutputStream gzip = new GZIPOutputStream(baos);
@@ -139,8 +157,9 @@ public class HttpServer {
      * Exécute une commande ou un script via un processus système (ex: bash, python)
      * et récupère le texte affiché en sortie (stdout).
      *
-     * @param interpreteur Le chemin de l'interpréteur (ex: "/bin/bash", "/usr/bin/python3").
-     * @param code Le code ou la commande à faire exécuter.
+     * @param interpreteur Le chemin de l'interpréteur (ex: "/bin/bash",
+     *                     "/usr/bin/python3").
+     * @param code         Le code ou la commande à faire exécuter.
      * @return Le résultat texte retourné par le script, ou un message d'erreur.
      */
     private static String executerScript(String interpreteur, String code) {
@@ -162,11 +181,14 @@ public class HttpServer {
     }
 
     /**
-     * Lit un fichier HTML, recherche toutes les balises du type {@code <code interpreteur="...">...</code>},
-     * exécute le code qu'elles contiennent et remplace la balise par le résultat d'exécution.
+     * Lit un fichier HTML, recherche toutes les balises du type
+     * {@code <code interpreteur="...">...</code>},
+     * exécute le code qu'elles contiennent et remplace la balise par le résultat
+     * d'exécution.
      *
      * @param fichier Le fichier HTML dynamique contenant les balises.
-     * @return Le contenu final de la page modifiée, prêt à être envoyé au navigateur.
+     * @return Le contenu final de la page modifiée, prêt à être envoyé au
+     *         navigateur.
      * @throws IOException En cas de problème de lecture du fichier original.
      */
     private static byte[] traiterHtmlDynamique(File fichier) throws IOException {
@@ -174,8 +196,10 @@ public class HttpServer {
         String texte = new String(Files.readAllBytes(fichier.toPath()), "UTF-8");
 
         // Regex pour trouver les balises <code interpreteur="...">...</code>
-        // Gère les guillemets " ' « »
-        Pattern pattern = Pattern.compile("<code[\\s]+interpreteur=[«\"']?([^»\"'\\s>]+)[»\"']?[^>]*>(.*?)</code>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        // on a du faire des recherches pour la regex, notamment pour gérer les
+        // différents types de guillemets
+        Pattern pattern = Pattern.compile("<code[\\s]+interpreteur=[«\"']?([^»\"'\\s>]+)[»\"']?[^>]*>(.*?)</code>",
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
         Matcher matcher = pattern.matcher(texte);
         StringBuffer resultat = new StringBuffer();
 
@@ -189,22 +213,26 @@ public class HttpServer {
         return resultat.toString().getBytes("UTF-8");
     }
 
-    //  GESTION DES REQUÊTES
+    // GESTION DES REQUÊTES
 
     /**
      * Moteur principal d'un site web (exécuté dans un Thread séparé).
-     * Crée le serveur, écoute sur le port attribué, et répond aux requêtes HTTP en continu.
+     * Crée le serveur, écoute sur le port attribué, et répond aux requêtes HTTP en
+     * continu.
      * Gère toutes les fonctionnalités : ETag, code dynamique, page de status,
      * blocage des attaques (Path Traversal), listing de dossiers, et GZIP.
      *
-     * @param pathRoot Le dossier racine contenant les fichiers de ce site.
-     * @param port Le port réseau sur lequel le serveur écoute (ex: 80, 8080).
-     * @param pathDefault Le nom du fichier à charger par défaut dans un dossier.
+     * @param pathRoot      Le dossier racine contenant les fichiers de ce site.
+     * @param port          Le port réseau sur lequel le serveur écoute (ex: 80,
+     *                      8080).
+     * @param pathDefault   Le nom du fichier à charger par défaut dans un dossier.
      * @param accessLogPath Le fichier où enregistrer les requêtes réussies.
-     * @param errorLogPath Le fichier où enregistrer les requêtes en erreur (ex: 404).
+     * @param errorLogPath  Le fichier où enregistrer les requêtes en erreur (ex:
+     *                      404).
      * @throws IOException Si la création du serveur sur ce port échoue.
      */
-    public static void chargerPage(String pathRoot, int port, String pathDefault, String accessLogPath, String errorLogPath) throws IOException {
+    public static void chargerPage(String pathRoot, int port, String pathDefault, String accessLogPath,
+            String errorLogPath) throws IOException {
 
         String erreur404 = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n404 Not Found\n";
         String erreur403 = "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n403 Forbidden\n";
@@ -255,25 +283,27 @@ public class HttpServer {
                 }
             }
 
-            //  Page /status : état de la machine 
+            // Page /status : état de la machine
             if (cheminDemande.equals("/status")) {
-                long memLibre   = Runtime.getRuntime().freeMemory();
+                long memLibre = Runtime.getRuntime().freeMemory();
                 long disqueLibre = new File("/").getFreeSpace();
                 int nbProcessus = 0;
                 try {
                     Process p = Runtime.getRuntime().exec("ps -e");
                     BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    while (br.readLine() != null) nbProcessus++;
+                    while (br.readLine() != null)
+                        nbProcessus++;
                     nbProcessus--; // enlever la ligne d'en tête de ps
                     br.close();
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
 
-                String html = "<html><head><meta charset=\"UTF-8\"><title>Etat serveur</title></head><body>" 
-                + "<h1>Etat de la machine</h1><ul>"
-                + "<li>Memoire JVM disponible : " + (memLibre / 1024 / 1024) + " Mo</li>"
-                + "<li>Espace disque disponible (/) : " + (disqueLibre / 1024 / 1024 / 1024) + " Go</li>"
-                + "<li>Nombre de processus Linux : " + nbProcessus + "</li>"
-                + "</ul></body></html>";
+                String html = "<html><head><meta charset=\"UTF-8\"><title>Etat serveur</title></head><body>"
+                        + "<h1>Etat de la machine</h1><ul>"
+                        + "<li>Memoire JVM disponible : " + (memLibre / 1024 / 1024) + " Mo</li>"
+                        + "<li>Espace disque disponible (/) : " + (disqueLibre / 1024 / 1024 / 1024) + " Go</li>"
+                        + "<li>Nombre de processus Linux : " + nbProcessus + "</li>"
+                        + "</ul></body></html>";
 
                 byte[] corps = html.getBytes("UTF-8");
                 sortieTexte.print("HTTP/1.1 200 OK\r\n");
@@ -288,11 +318,12 @@ public class HttpServer {
                 continue;
             }
 
-            //  Sécurité : bloquer les chemins avec ".." : recherche sur internet pour réussir à faire ça
-            
-            
+            // Sécurité : bloquer les chemins avec ".." : recherche sur internet pour
+            // réussir à faire ça
+
             if (cheminDemande.contains("..")) {
-                logToFile(errorLogPath, "403 (chemin interdit) : " + cheminDemande + " (IP: " + socket.getInetAddress() + ")");
+                logToFile(errorLogPath,
+                        "403 (chemin interdit) : " + cheminDemande + " (IP: " + socket.getInetAddress() + ")");
                 sortieTexte.print(erreur403);
                 sortieTexte.flush();
                 socket.close();
@@ -314,7 +345,7 @@ public class HttpServer {
                 }
             }
 
-            //  Fichier introuvable : 404 
+            // Fichier introuvable : 404
             if (!fichier.exists()) {
                 logToFile(errorLogPath, "404 : " + cheminDemande + " (IP: " + socket.getInetAddress() + ")");
                 sortieTexte.print(erreur404);
@@ -323,10 +354,11 @@ public class HttpServer {
                 continue;
             }
 
-            //  C'est un dossier sans fichier par défaut : listing 
+            // C'est un dossier sans fichier par défaut : listing
             if (fichier.isDirectory()) {
                 StringBuilder html = new StringBuilder();
-                html.append("<html><head><meta charset=\"UTF-8\"><title>Index de ").append(cheminDemande).append("</title></head><body>\n");
+                html.append("<html><head><meta charset=\"UTF-8\"><title>Index de ").append(cheminDemande)
+                        .append("</title></head><body>\n");
                 html.append("<h1>Index de ").append(cheminDemande).append("</h1><hr><pre>\n");
 
                 // Lien vers le dossier parent
@@ -379,7 +411,7 @@ public class HttpServer {
                 continue;
             }
 
-            //  C'est un fichier normal 
+            // C'est un fichier normal
             try {
                 String etagServeur = calculerMD5(fichier);
                 String dateModifServeur = formaterDate(fichier.lastModified());
@@ -388,7 +420,8 @@ public class HttpServer {
                 boolean faireGzip = doitEtreGzippe(fichier.getName()) && accepteGzip;
 
                 // Vérification du cache : si le client a déjà la bonne version : 304
-                boolean clientAJour = (etagClient != null && etagClient.equals(etagServeur)) || (dateModifClient != null && dateModifClient.equals(dateModifServeur));
+                boolean clientAJour = (etagClient != null && etagClient.equals(etagServeur))
+                        || (dateModifClient != null && dateModifClient.equals(dateModifServeur));
 
                 if (clientAJour) {
                     sortieTexte.print("HTTP/1.1 304 Not Modified\r\n");
@@ -451,7 +484,7 @@ public class HttpServer {
         }
     }
 
-    //  MÉTHODE PRINCIPALE 
+    // MÉTHODE PRINCIPALE
 
     /**
      * Point d'entrée principal du programme.
@@ -460,12 +493,13 @@ public class HttpServer {
      * - Création d'un Thread indépendant pour chaque site/port configuré.
      *
      * @param args Les arguments passés au lancement (non utilisés).
-     * @throws Exception Si une erreur critique survient au lancement (ex: erreur XML).
+     * @throws Exception Si une erreur critique survient au lancement (ex: erreur
+     *                   XML).
      */
     public static void main(String[] args) throws Exception {
 
         // Écriture du fichier PID (numéro du processus Java)
-        // ManagementFactory retourne quelque chose comme "1234@nomMachine", on prend juste le chiffre
+        // trouvé sur internet pour récupérer le PID du processus java
         String nomJvm = ManagementFactory.getRuntimeMXBean().getName();
         String pidStr = nomJvm.split("@")[0];
         File repRun = new File("../run");
@@ -491,7 +525,8 @@ public class HttpServer {
 
         for (int c = 0; c < tousLesConf.length; c++) {
             File confFile = tousLesConf[c];
-            if (!confFile.getName().endsWith(".conf")) continue;
+            if (!confFile.getName().endsWith(".conf"))
+                continue;
 
             System.out.println("Chargement : " + confFile.getName());
             Document document = builder.parse(confFile);
@@ -519,7 +554,7 @@ public class HttpServer {
                     try {
                         int port = Integer.parseInt(clefPort);
 
-                        Node nodeRoot  = gestionSite.get(clefPort).get(0);
+                        Node nodeRoot = gestionSite.get(clefPort).get(0);
                         Node nodeIndex = gestionSite.get(clefPort).get(1);
                         Node nodeAcces = gestionSite.get(clefPort).get(2);
                         Node nodeError = gestionSite.get(clefPort).get(3);
