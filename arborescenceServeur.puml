@@ -3,9 +3,9 @@
 /serveurWeb/bin/HttpServer.class
 /serveurWeb/conf.d/serverWeb.conf
 /serveurWeb/run/myweb.pid
+/serveurWeb/run/serverWeb.service
 /serveurWeb/scripts/start.sh
 /serveurWeb/scripts/stop.sh
-/serveurWeb/scripts/serverWeb.service
 /serveurWeb/var/log/access.log
 /serveurWeb/var/log/error.log
 /serveurWeb/var/log/access8080.log
