@@ -311,7 +311,7 @@ public class HttpServer {
         // 2. Chargement du document en mémoire
         Document document = null;
         try {
-            document = builder.parse(new File("../conf.d/serverWeb.conf"));
+            document = builder.parse(new File("ServerWeb_GALLOIS_LE_MADEC/serveurWeb/conf.d/serverWeb.conf"));
         } catch (SAXException | IOException e) {
             e.printStackTrace();
         }
