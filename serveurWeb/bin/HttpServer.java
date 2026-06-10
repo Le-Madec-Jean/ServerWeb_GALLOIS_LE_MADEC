@@ -418,29 +418,7 @@ public class HttpServer {
         }
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-<<<<<<< HEAD
-        DocumentBuilder builder = null;
-        try {
-            builder = factory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            e.printStackTrace();
-        }
-
-        // 2. Chargement du document en mémoire
-        Document document = null;
-        try {
-            document = builder.parse(new File("ServerWeb_GALLOIS_LE_MADEC/serveurWeb/conf.d/serverWeb.conf"));
-        } catch (SAXException | IOException e) {
-            e.printStackTrace();
-        }
-
-        // 3. Récupération de tous les éléments <site>
-        NodeList siteNodeList = document.getElementsByTagName("site");
-
-        // on crée la liste pour stocker les différents éléments du fichier config
-=======
         DocumentBuilder builder = factory.newDocumentBuilder();
->>>>>>> 9567894807e1e2dc210789f9646d022635569335
 
         // Map : port (String) → liste [DocumentRoot, DefaultIndex, AccesLog, ErrorLog]
         TreeMap<String, ArrayList<Node>> gestionSite = new TreeMap<String, ArrayList<Node>>();
