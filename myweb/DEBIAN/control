@@ -1,0 +1,5 @@
+Package: myweb
+Version: 1.0
+Architecture: all
+Maintainer: Pierre GALLOIS et Jean LE MADEC
+Description: Serveur Web configurable Java
